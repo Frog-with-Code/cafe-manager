@@ -26,6 +26,12 @@ class FinanceRepo(Protocol):
 
     def save(self, account: Account) -> None:
         pass
+    
+    def set_primary(self, account_id: UUID) -> None:
+        pass
+    
+    def get_primary(self) -> Account | None:
+        pass
 
 
 class TableRepo(Protocol):
@@ -59,7 +65,7 @@ class InventoryRepo(Protocol):
 
 
 class OrderRepo(Protocol):
-    def get_by_id(self, order_id: UUID) -> Order | None:
+    def get_by_id(self, order_id: str) -> Order | None:
         pass
 
     def get_oldest_paid(self) -> Order | None:

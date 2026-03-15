@@ -1,9 +1,13 @@
+import re
 from pathlib import Path
 
 from cafe_manager.domain.entities.cafe import Cafe
 from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
 from cafe_manager.common.exceptions import (
+    CafeEnvAlreadyInitError,
     CafeEnvExistsError,
+    CafeEnvNameLengthError,
+    CafeEnvNameSymbolsError,
     CafeEnvNoActiveError,
     CafeEnvNotFoundError,
     CafeInitError,
@@ -18,9 +22,16 @@ class CafeCreateHandler:
         self._env_manager = env_manager
 
     def handle(self, name: str) -> None:
+        if len(name) > 25:
+            raise CafeEnvNameLengthError("Provided name is too long")
+
+        pattern = r"^[a-zA-Z0-9_\-]+$"
+        if not re.match(pattern, name):
+            raise CafeEnvNameSymbolsError(
+                "Provided name contains forbidden symbols. Only latin letters, digits, tie and underscore are allowed"
+            )
         db_path = self.base_path / f"{name}.db"
 
-        print(db_path)
         if db_path.exists():
             raise CafeEnvExistsError(
                 f"Impossible to create cafe '{name}'. Such cafe already exists"
@@ -46,7 +57,9 @@ class CafeRemoveHandler:
             if active_env == db_path:
                 self._env_manager.deactivate_env(self.data_folder)
         except FileNotFoundError as e:
-            raise CafeEnvNotFoundError(f"Impossible to remove cafe '{name}'. Such cafe not exists") from e
+            raise CafeEnvNotFoundError(
+                f"Impossible to remove cafe '{name}'. Such cafe doesn't exist"
+            ) from e
 
 
 class CafeActivateHandler:
@@ -60,10 +73,17 @@ class CafeActivateHandler:
     def handle(self, name: str) -> None:
         db_path = self.base_path / f"{name}.db"
 
+        if not db_path.exists():
+            raise CafeEnvNotFoundError(
+                f"Impossible to activate environment '{name}'. It doesn't exist"
+            )
+
         try:
             self._env_manager.activate_env(db_path, self.data_folder)
         except FileNotFoundError as e:
-            raise CafeEnvNotFoundError(f"Impossible to activate cafe '{name}'. Such cafe not exists") from e
+            raise CafeEnvNotFoundError(
+                f"Impossible to activate cafe '{name}'. Such cafe not exists"
+            ) from e
 
 
 class CafeDeactivateHandler:
@@ -84,20 +104,19 @@ class CafeDeactivateHandler:
 
 
 class CafeInitHandler:
-    def __init__(
-        self, db_path: Path, cafe_repo: CafeRepo, account: FinanceRepo
-    ) -> None:
-        self.db_path = db_path
+    def __init__(self, cafe_repo: CafeRepo, finance_repo: FinanceRepo) -> None:
         self._cafe_repo = cafe_repo
-        self._account = account
+        self._finance_repo = finance_repo
 
     def handle(self, name: str, address: str, startup_capital: Money) -> None:
-        existing_cafe = self._cafe_repo.get()
-        if not existing_cafe is None:
-            raise CafeInitError("Cafe is already initialized")
+        if self._cafe_repo.get() or self._finance_repo.get_primary():
+            raise CafeEnvAlreadyInitError(
+                "You can have only 1 cafe in the environment. Try to switch to another environment with not initialized cafe"
+            )
 
         cafe = Cafe(name, address)
         account = Account(balance=startup_capital)
 
         self._cafe_repo.save(cafe)
-        self._account.save(account)
+        self._finance_repo.save(account)
+        self._finance_repo.set_primary(account.account_id)

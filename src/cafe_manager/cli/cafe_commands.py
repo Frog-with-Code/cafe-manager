@@ -1,15 +1,21 @@
 import typer
 from typing import Annotated
 
+from cafe_manager.common.exceptions import (
+    CLIUnexpectedError,
+    CLIBusinessError,
+    CafeEnvNameError,
+    RecordNotUpdatedError,
+)
+from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
+    SQLiteFinanceRepo,
+)
+
 from .custom_types import Money, parse_money
+from .context import init_context, BASE_DIR
 from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
 from cafe_manager.applications.use_cases.cafe_handlers import *
 from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
-
-
-from pathlib import Path
-
-BASE_DIR = Path(__file__).parent.parent
 
 app = typer.Typer()
 
@@ -23,16 +29,15 @@ def create(
     ],
 ):
     """Create new cafe environment"""
+
     try:
         handler = CafeCreateHandler(BASE_DIR, env_manager)
         handler.handle(name)
         print(f"New cafe environment with name {name} was created")
-    except CafeEnvExistsError as e:
-        typer.echo(f"{e}", err=True)
-        typer.Exit(code=1)
+    except (CafeEnvExistsError, CafeEnvNameError) as e:
+        raise CLIBusinessError(str(e))
     except Exception as e:
-        typer.echo(f"Unexpected error {e}", err=True)
-        typer.Exit(code=1)
+        raise CLIUnexpectedError(str(e))
 
 
 @app.command()
@@ -61,11 +66,9 @@ def remove(
             handler.handle(name)
             print(f"Cafe environment with name {name} was deleted")
     except CafeEnvNotFoundError as e:
-        typer.echo(f"{e}", err=True)
-        typer.Exit(code=1)
+        raise CLIBusinessError(str(e))
     except Exception as e:
-        typer.echo(f"Unexpected error {e}", err=True)
-        typer.Exit(code=1)
+        raise CLIUnexpectedError(str(e))
 
 
 @app.command()
@@ -79,12 +82,10 @@ def activate(
         handler = CafeActivateHandler(BASE_DIR, env_manager, BASE_DIR)
         handler.handle(name)
         print(f"Cafe environment with name {name} was activated")
-    except CafeEnvNotFoundError as e:
-        typer.echo(f"{e}", err=True)
-        typer.Exit(code=1)
+    except CafeEnvNoActiveError as e:
+        raise CLIBusinessError(str(e))
     except Exception as e:
-        typer.echo(f"Unexpected error {e}", err=True)
-        typer.Exit(code=1)
+        raise CLIUnexpectedError(str(e))
 
 
 @app.command()
@@ -97,12 +98,12 @@ def deactivate():
     except CafeEnvNoActiveError as e:
         pass
     except Exception as e:
-        typer.echo(f"Unexpected error {e}", err=True)
-        typer.Exit(code=1)
+        raise CLIUnexpectedError(str(e))
 
 
 @app.command()
 def init(
+    ctx: typer.Context,
     name: Annotated[str, typer.Option("--name", "-n", help="Name of the cafe")],
     address: Annotated[
         str, typer.Option("--address", "-a", help="Address of the cafe")
@@ -113,4 +114,18 @@ def init(
             "--capital", "-c", parser=parse_money, help="Starting capital of the cafe"
         ),
     ] = Money(),
-): ...
+):
+    """Initialize new cafe environment. Set metadata of the cafe and create its financial account"""
+    init_context(ctx)
+
+    try:
+        env = ctx.obj["active_env"]
+        cafe_repo = SQLiteCafeRepo(env)
+        finance_repo = SQLiteFinanceRepo(env)
+
+        handler = CafeInitHandler(cafe_repo, finance_repo)
+        handler.handle(name, address, capital)
+    except CafeEnvAlreadyInitError as e:
+        raise CLIBusinessError(str(e))
+    except Exception as e:
+        raise CLIUnexpectedError(str(e))

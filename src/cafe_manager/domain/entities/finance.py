@@ -18,7 +18,10 @@ class Money:
     amount: Decimal = Decimal("0.00")
 
     @classmethod
-    def from_any(cls, amount: Decimal | int | float | str) -> "Money":
+    def from_any(cls, amount: Decimal | int | float | str | Money) -> "Money":
+        if isinstance(amount, Money):
+            return amount
+            
         if not isinstance(amount, Decimal):
             try:
                 amount = Decimal(str(amount))
@@ -113,7 +116,7 @@ class Transaction:
 
 class Account:
     def __init__(self, account_id: UUID | None = None, balance: Money = Money(), history: list[Transaction] | None = None) -> None:
-        self.account_id = account_id
+        self.account_id = account_id or uuid4()
         self._balance = balance
         self._history = history or []
 
