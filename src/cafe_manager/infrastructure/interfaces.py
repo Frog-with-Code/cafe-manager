@@ -89,8 +89,14 @@ class CoffeeMachineRepo(Protocol):
 class MenuRepo(Protocol):
     def get_by_names(self, names: set[str]) -> set[MenuItem] | None:
         pass
+    
+    def get_all(self) -> set[MenuItem] | None:
+        pass
 
-    def save(self, menu_item: MenuItem) -> None:
+    def save(self, item: MenuItem) -> None:
+        pass
+    
+    def delete(self, name: str) -> None:
         pass
 
 

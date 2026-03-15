@@ -45,6 +45,18 @@ class SQLiteMenuRepo(AbstractSQliteRepo):
             items = [self._convert_to_entity(row) for row in rows]
             return set(items)
 
+    def get_all(self) -> set[MenuItem] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                f"SELECT * from menu",
+            ).fetchall()
+            
+            if not rows:
+                return None
+
+            items = [self._convert_to_entity(row) for row in rows]
+            return set(items)
+
     def save(self, item: MenuItem) -> None:
         with self._get_connection() as conn:
             conn.execute(
@@ -65,3 +77,12 @@ class SQLiteMenuRepo(AbstractSQliteRepo):
                     str(item.category),
                 ),
             )
+            
+    def delete(self, name: str) -> None:
+        with self._get_connection() as conn:
+            conn.execute(
+                "DELETE FROM menu WHERE name = ?", 
+                (name,)
+            )
+            conn.commit()
+            

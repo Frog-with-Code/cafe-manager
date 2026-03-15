@@ -1,45 +1,160 @@
+from xmlrpc.client import boolean
 import typer
 from typing import Annotated
+from rich.table import Table
+from rich.console import Console
 
-from .validation import validate_item_format
+from cafe_manager.applications.use_cases.menu_handlers import (
+    MenuAddItemHandler,
+    MenuInfoHandler,
+    MenuItemRemoveHandler,
+)
+from cafe_manager.cli.context import BASE_DIR, get_env_path, init_context
+from cafe_manager.common.exceptions import CLIBusinessError, MenuItemExistsError, MenuItemNotFoundError
+from cafe_manager.domain.entities.menu import MenuItemCategory
+from cafe_manager.infrastructure.sqlite.repositories.menu_repo import SQLiteMenuRepo
+from cafe_manager.domain.entities.menu import Ingredient, Unit
 
-app = typer.Typer()
+from .validation import validate_item_format, validate_non_negative
+from .custom_types import Money, parse_money
+
+console = Console()
+err_console = Console(stderr=True)
+app = typer.Typer(callback=init_context)
+
 
 @app.command()
 def info(
+    ctx: typer.Context,
     expanded: Annotated[
         bool, typer.Option("--expanded", "-e", help="Expand info table about menu")
     ] = False,
 ):
-    """Show info about menu"""
-    if expanded:
-        print("HIIII")
-    else:
-        print("HUUUUUU")
-        
-@app.command("add-items")
-def add_items(
-    items: Annotated[
-        list[str],
-        typer.Argument(
-            callback=lambda items: [validate_item_format(i) for i in items],
-            help="Menu items in format name:amount",
+    """Show info about menu items"""
+    env_path = get_env_path(ctx)
+    menu_repo = SQLiteMenuRepo(env_path)
+    handler = MenuInfoHandler(menu_repo)
+
+    grouped_items = handler.handle()
+
+    for menu_type, items in grouped_items.items():
+        table = Table(title=f"{str(menu_type)}")
+
+        table.add_column("name")
+
+        if expanded:
+            table.add_column("price")
+            table.add_column("category")
+
+        for i in items:
+            params = [i.name]
+            if expanded:
+                params.extend([str(i.category), str(i.price)])
+
+            table.add_row(*params)
+
+        console.print(table)
+
+
+@app.command("add-item")
+def add_item(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Option("--name", "-n", help="Name of the menu item")],
+    price: Annotated[
+        Money,
+        typer.Option(
+            "--price",
+            "-p",
+            help="Price of the menu item",
+            parser=parse_money,
+            metavar="MONEY",
         ),
     ],
-):
-    """Add new menu items to the menu"""
-    print(items, sep="\n")
-
-
-@app.command("remove-items")
-def remove_items(
-    items: Annotated[
-        list[str],
-        typer.Argument(
-            callback=lambda items: [validate_item_format(i) for i in items],
-            help="Menu items in format name:amount",
+    category: Annotated[
+        MenuItemCategory,
+        typer.Option("--category", "-c", help="Category of the menu item"),
+    ],
+    milk_foam: Annotated[
+        bool,
+        typer.Option(
+            "--milk-foam", "-m", help="Milk foam is required for the menu item"
         ),
+    ] = False,
+    overwrite: Annotated[
+        bool,
+        typer.Option("--overwrite", "-o", help="Overwrite information about menu item"),
+    ] = False,
+):
+    """Add new item to the menu"""
+    ingredients: dict[str, dict[str, float]] = {}
+    while True:
+        print()
+        ing_name = typer.prompt("Enter ingredient (or enter 'q' to quit)", type=str)
+
+        if ing_name in ("q", "Q"):
+            break
+
+        if ingredients.get(ing_name, None) is not None:
+            err_console.print(
+                "[bold red]Don't enter the same ingredients several times[/bold red]"
+            )
+            continue
+
+        ing_unit = typer.prompt("Enter unit of the ingredient", type=str)
+
+        try:
+            Unit(ing_unit)
+        except ValueError:
+            values = [item.value for item in Unit]
+            err_console.print(
+                f"[bold red]Unknown unit of the ingredient.[bold red] \n [bold yellow]Only {values} are allowed[/bold yellow]"
+            )
+            continue
+
+        ing_amount = typer.prompt("Enter amount of the ingredient", type=float)
+
+        try:
+            validate_non_negative(ing_amount)
+        except typer.BadParameter:
+            err_console.print("[bold red]Ingredient amount must be positive[/bold red]")
+            continue
+
+        ingredients[ing_name] = {"unit": ing_unit, "amount": ing_amount}
+
+    if not ingredients:
+        raise CLIBusinessError("Impossible to add menu item without ingredients")
+
+    env_path = get_env_path(ctx)
+    menu_repo = SQLiteMenuRepo(env_path)
+    handler = MenuAddItemHandler(menu_repo)
+
+    try:
+        handler.handle(
+            name=name,
+            price=price,
+            category=category,
+            requires_milk_foam=milk_foam,
+            ingredients_data=ingredients,
+            overwrite=overwrite,
+        )
+    except MenuItemExistsError as e:
+        raise CLIBusinessError(str(e))
+
+
+@app.command("remove-item")
+def remove_items(
+    ctx: typer.Context,
+    name: Annotated[
+        str,
+        typer.Option("--name", "-n", help="Name of the menu item"),
     ],
 ):
     """Remove menu items from the menu"""
-    print(items, sep="\n")
+    env_path = get_env_path(ctx)
+    menu_repo = SQLiteMenuRepo(env_path)
+    handler = MenuItemRemoveHandler(menu_repo)
+    
+    try:
+        handler.handle(name)
+    except MenuItemNotFoundError as e:
+        raise CLIBusinessError(str(e))
