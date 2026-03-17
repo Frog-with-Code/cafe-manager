@@ -1,8 +1,14 @@
+from cafe_manager.domain.entities.equipment import Chair
+from cafe_manager.infrastructure.interfaces import (
+    ChairRepo,
+    CoffeeMachineRepo,
+    TableRepo,
+)
 from .abstract_repo import *
 from cafe_manager.domain.entities.equipment import *
 
 
-class SQLiteTableRepo(AbstractSQliteRepo):
+class SQLiteTableRepo(AbstractSQliteRepo, TableRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 
@@ -65,35 +71,36 @@ class SQLiteTableRepo(AbstractSQliteRepo):
 
     def save_many(self, tables: list[Table]) -> None:
         with self._get_connection() as conn:
-            try:
-                params = [
-                    (
-                        table.table_id,
-                        table.max_places,
-                        str(table._state),
-                        table.chairs_ids,
-                    )
-                    for table in tables
-                ]
-
-                conn.executemany(
-                    """
-                    INSERT INTO tables (id, max_places, state, chairs_ids) 
-                    VALUES(?, ?, ?, ?) 
-                    ON CONFLICT(id) DO UPDATE SET
-                    max_places = excluded.max_places,
-                    state = excluded.state,
-                    chairs_ids = excluded.chairs_ids
-                """,
-                    (params),
+            params = [
+                (
+                    table.table_id,
+                    table.max_places,
+                    str(table._state),
+                    table.chairs_ids,
                 )
-                conn.commit()
-            except:
-                conn.rollback()
-                raise
+                for table in tables
+            ]
+
+            conn.executemany(
+                """
+                INSERT INTO tables (id, max_places, state, chairs_ids) 
+                VALUES(?, ?, ?, ?) 
+                ON CONFLICT(id) DO UPDATE SET
+                max_places = excluded.max_places,
+                state = excluded.state,
+                chairs_ids = excluded.chairs_ids
+            """,
+                (params),
+            )
+            conn.commit()
+
+    def delete_by_id(self, table_id: int) -> None:
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM tables WHERE id = ?", (table_id,))
+            conn.commit()
 
 
-class SQLiteChairRepo(AbstractSQliteRepo):
+class SQLiteChairRepo(AbstractSQliteRepo, ChairRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 
@@ -129,11 +136,33 @@ class SQLiteChairRepo(AbstractSQliteRepo):
             chairs = [self._convert_to_entity(row) for row in rows]
             return chairs
 
-    def get_occupied_by_table_id(self, table_id: int) -> list[Chair] | None:
+    def get_by_id(self, chair_id: int) -> Chair | None:
+        with self._get_connection() as conn:
+            row = conn.execute(
+                "SELECT * from chairs WHERE id = ?", (chair_id,)
+            ).fetchone()
+
+            if not row:
+                return None
+
+            return self._convert_to_entity(row)
+
+    def delete_by_id(self, chair_id: int) -> None:
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM chairs WHERE id = ?", (chair_id,))
+            conn.commit()
+
+    def delete_table_by_id(self, table_id: int) -> None:
+        with self._get_connection() as conn:
+            conn.execute(
+                "UPDATE chairs SET table_id = NULL WHERE table_id = ?", (table_id,)
+            )
+
+    def get_busy_by_table_id(self, table_id: int) -> list[Chair] | None:
         with self._get_connection() as conn:
             rows = conn.execute(
                 """
-                        SELECT * from chairs WHERE state = 'occupied' AND table_id = ?
+                        SELECT * from chairs WHERE table_id = ? AND state IN ('reserved', 'occupied')
                     """,
                 (table_id,),
             ).fetchall()
@@ -156,6 +185,16 @@ class SQLiteChairRepo(AbstractSQliteRepo):
                 (chair.chair_id, chair._table_id, str(chair._state)),
             )
             conn.commit()
+
+    def get_all(self) -> list[Chair] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute("SELECT * from chairs").fetchall()
+
+            if not rows:
+                return None
+
+            tables = [self._convert_to_entity(row) for row in rows]
+            return tables
 
     def save_many(self, chairs: list[Chair]) -> None:
         with self._get_connection() as conn:
@@ -180,7 +219,7 @@ class SQLiteChairRepo(AbstractSQliteRepo):
                 raise
 
 
-class SQLiteCoffeeMachineRepo(AbstractSQliteRepo):
+class SQLiteCoffeeMachineRepo(AbstractSQliteRepo, CoffeeMachineRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 

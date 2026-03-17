@@ -6,8 +6,6 @@ from cafe_manager.common.exceptions import (
     RecipeError,
     CoffeeMachinePipelineError,
     CoffeeMachineStateError,
-    TableCleaningError,
-    TableOccupationError,
     TablePlacesError,
     TableStateError,
     ChairStateError,
@@ -17,6 +15,7 @@ from .menu import MenuItem
 
 class TableState(StrEnum):
     AVAILABLE = "available"
+    RESERVED = "reserved"
     OCCUPIED = "occupied"
     DIRTY = "dirty"
 
@@ -31,6 +30,7 @@ class CoffeeMachineState(StrEnum):
 
 class ChairState(StrEnum):
     AVAILABLE = "available"
+    RESERVED = "reserved"
     OCCUPIED = "occupied"
 
 
@@ -45,58 +45,51 @@ class Chair:
         self._table_id = table_id
         self._state = state
 
-    def can_be_occupied(self) -> bool:
+    def can_be_reserved(self) -> bool:
         return self._state == ChairState.AVAILABLE
 
-    def occupy(self) -> None:
-        if not self.can_be_occupied():
+    def reserve(self) -> None:
+        if not self.can_be_reserved():
             raise ChairStateError("Chair is not available")
 
-        self._state = ChairState.OCCUPIED
-        print("Chair was occupied")
+        self._state = ChairState.RESERVED
+
+    def occupy(self) -> None:
+        if self._state != ChairState.RESERVED:
+            raise ChairStateError("Chair is not reserved")
+
+        self._state = ChairState.RESERVED
 
     def free(self) -> None:
-        if self._state == ChairState.AVAILABLE:
-            print("Chair is already available")
-        else:
-            self._state = ChairState.AVAILABLE
-            print("Chair was released")
+        self._state = ChairState.AVAILABLE
 
     def assign_to_table(self, table_id: int | None) -> None:
         if not isinstance(table_id, int):
             raise ValueError("Incorrect id type")
         self._table_id = table_id
-        print(f"Chair {self.chair_id} was assigned to table {table_id}")
 
 
 class Table:
     def __init__(
         self,
         max_places: int,
-        state: TableState | None = None,
+        state: TableState = TableState.AVAILABLE,
         table_id: int | None = None,
         chairs_ids: set[int] | None = None,
     ) -> None:
         self.table_id = table_id
         self.max_places = max_places
-        self._state = state or TableState.AVAILABLE
+        self._state = state
         self._chairs_ids = chairs_ids or set()
 
     def clean(self) -> None:
         match (self._state):
-            case TableState.AVAILABLE:
-                print("Table is already clean")
-            case TableState.OCCUPIED:
-                raise TableCleaningError("Impossible to clean occupied table")
+            case TableState.OCCUPIED | TableState.RESERVED:
+                raise TableStateError("Impossible to clean reserved/occupied table")
             case TableState.DIRTY:
                 self._state = TableState.AVAILABLE
-                print("Table was cleaned")
             case _:
                 raise TableStateError("Unknown state")
-
-    @property
-    def is_available(self) -> bool:
-        return self._state == TableState.AVAILABLE
 
     @property
     def chairs_ids(self) -> set[int]:
@@ -106,25 +99,36 @@ class Table:
     def chairs_amount(self) -> int:
         return len(self._chairs_ids)
 
-    def can_be_occupied(self, people_amount: int) -> bool:
-        return self.is_available and len(self._chairs_ids) >= people_amount
+    @property
+    def is_available(self) -> bool:
+        return self._state == TableState.AVAILABLE
 
-    def occupy(self, people_amount: int) -> None:
-        if not self.can_be_occupied(people_amount):
-            raise TableOccupationError(
-                "Impossible to occupy table. It's not available or don't match the conditions"
+    def can_be_reserved(self, people_amount: int) -> bool:
+        return (
+            self._state == TableState.AVAILABLE
+            and len(self._chairs_ids) >= people_amount
+        )
+
+    def reserve(self, people_amount: int) -> None:
+        if not self.can_be_reserved(people_amount):
+            raise TableStateError(
+                "Impossible to reserve table. It's not available or don't match the conditions"
             )
+        self._state = TableState.RESERVED
+
+    def occupy(self) -> None:
+        if self._state != TableState.RESERVED:
+            raise TableStateError("Impossible to occupy not reserved table")
+
         self._state = TableState.OCCUPIED
 
     def free(self) -> None:
-        match (self._state):
-            case TableState.OCCUPIED:
-                self._state = TableState.DIRTY
-                print("Table was released")
-            case TableState.AVAILABLE | TableState.DIRTY:
-                print("Table is already free")
-            case _:
-                raise TableStateError("Unknown state")
+        if self._state in (
+            TableState.AVAILABLE,
+            TableState.RESERVED,
+            TableState.OCCUPIED,
+        ):
+            self._state = TableState.AVAILABLE
 
     def add_chair(self, chair_id: int | None) -> None:
         if not isinstance(chair_id, int):
@@ -148,16 +152,23 @@ class Table:
 class CoffeeMachine:
     PROGRESS_STEPS = 5
     PROGRESS_TOTAL = 100
+    GRINDING_TIME = 5
+    BREWING_TIME = 5
+    STEAMING_TIME = 5
 
-    def __init__(self, model: str, maintenance_limit: int = 200) -> None:
+    def __init__(
+        self,
+        model: str,
+        machine_id: int | None = None,
+        maintenance_limit: int = 200,
+        cycles_count: int = 0,
+        state: CoffeeMachineState = CoffeeMachineState.IDLE,
+    ) -> None:
+        self.machine_id = machine_id
         self.model = model
         self.maintenance_limit = maintenance_limit
-        self.cycles_after_maintenance: int = 0
-        self._state: CoffeeMachineState = CoffeeMachineState.IDLE
-
-        self.grinding_time = 5
-        self.brewing_time = 5
-        self.steaming_time = 5
+        self.cycles_count = cycles_count
+        self._state = state
 
     def _grind(self) -> None:
         if self._state != CoffeeMachineState.IDLE:
@@ -170,7 +181,7 @@ class CoffeeMachine:
             range(0, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
             description="Grinding...",
         ):
-            time.sleep(self.grinding_time / self.PROGRESS_STEPS)
+            time.sleep(self.GRINDING_TIME / self.PROGRESS_STEPS)
 
     def _brew(self) -> None:
         if self._state != CoffeeMachineState.GRINDING:
@@ -183,7 +194,7 @@ class CoffeeMachine:
             range(0, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
             description="Brewing...",
         ):
-            time.sleep(self.brewing_time / self.PROGRESS_STEPS)
+            time.sleep(self.BREWING_TIME / self.PROGRESS_STEPS)
 
     def _steam(self) -> None:
         if self._state != CoffeeMachineState.BREWING:
@@ -196,7 +207,7 @@ class CoffeeMachine:
             range(0, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
             description="Steaming...",
         ):
-            time.sleep(self.steaming_time / self.PROGRESS_STEPS)
+            time.sleep(self.STEAMING_TIME / self.PROGRESS_STEPS)
 
     def maintenance(self) -> None:
         match (self._state):
@@ -204,7 +215,7 @@ class CoffeeMachine:
                 print("Maintenance is not needed yet")
             case CoffeeMachineState.MAINTENANCE:
                 self._state = CoffeeMachineState.IDLE
-                self.cycles_after_maintenance = 0
+                self.cycles_count = 0
             case (
                 CoffeeMachineState.GRINDING
                 | CoffeeMachineState.BREWING
@@ -227,5 +238,5 @@ class CoffeeMachine:
             self._steam()
 
         self._state = CoffeeMachineState.IDLE
-        self.cycles_after_maintenance += 1
+        self.cycles_count += 1
         print("Coffee is made!")
