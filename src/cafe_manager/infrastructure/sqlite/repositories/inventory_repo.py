@@ -1,8 +1,9 @@
+from cafe_manager.infrastructure.interfaces import InventoryRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.menu import Ingredient, Unit
 
 
-class SQLiteInventoryRepo(AbstractSQliteRepo):
+class SQLiteInventoryRepo(AbstractSQliteRepo, InventoryRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 
@@ -58,3 +59,28 @@ class SQLiteInventoryRepo(AbstractSQliteRepo):
             except:
                 conn.rollback()
                 raise
+
+    def delete_by_name(self, name: str) -> None:
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM inventory WHERE name = ?", (name,))
+            conn.commit()
+
+    def get_all(self) -> dict[Ingredient, float] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                f"SELECT * from inventory",
+            ).fetchall()
+
+            if not rows:
+                return None
+
+            inventory = dict(self._convert_to_entity(row) for row in rows)
+            return inventory
+
+    def add_ingredient_by_name(self, name: str, amount: float) -> None:
+        with self._get_connection() as conn:
+            conn.execute(
+                "UPDATE inventory SET amount = amount + ? WHERE name = ?",
+                (amount, name),
+            )
+            conn.commit()

@@ -89,6 +89,15 @@ class InventoryRepo(Protocol):
 
     def save_many(self, inventory: dict[Ingredient, float]) -> None:
         pass
+    
+    def delete_by_name(self, name: str) -> None:
+        pass
+    
+    def get_all(self) -> dict[Ingredient, float] | None:
+        pass
+    
+    def add_ingredient_by_name(self, name: str, amount: float) -> None:
+        pass
 
 
 class OrderRepo(Protocol):
