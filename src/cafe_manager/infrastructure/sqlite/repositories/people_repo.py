@@ -1,8 +1,10 @@
+from cafe_manager.domain.entities.people import Employee
+from cafe_manager.infrastructure.interfaces import EmployeeRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.people import *
 
 
-class SQLiteEmployeeRepo(AbstractSQliteRepo):
+class SQLiteEmployeeRepo(AbstractSQliteRepo, EmployeeRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 
@@ -69,6 +71,21 @@ class SQLiteEmployeeRepo(AbstractSQliteRepo):
                 ),
             )
             conn.commit()
+
+    def delete_by_id(self, employee_id: str) -> None:
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM employees WHERE id = ?", (employee_id,))
+            conn.commit()
+
+    def get_all(self) -> list[Employee] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute("SELECT * from employees")
+
+            if not rows:
+                return None
+
+            employees = [self._convert_to_entity(row) for row in rows]
+            return employees
 
 
 class SQLiteClientRepo(AbstractSQliteRepo):

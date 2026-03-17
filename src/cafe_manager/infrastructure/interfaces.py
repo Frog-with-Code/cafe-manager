@@ -13,10 +13,16 @@ class EmployeeRepo(Protocol):
     def get_most_free(self) -> Employee | None:
         pass
 
-    def get_by_id(self, employee_id: UUID) -> Employee | None:
+    def get_by_id(self, employee_id: str) -> Employee | None:
         pass
 
     def save(self, employee: Employee) -> None:
+        pass
+    
+    def delete_by_id(self, employee_id: str) -> None:
+        pass
+    
+    def get_all(self) -> list[Employee] | None:
         pass
 
 
@@ -41,18 +47,39 @@ class TableRepo(Protocol):
     def get_by_id(self, table_id: int) -> Table | None:
         pass
 
-    def save_many(self, table: list[Table]) -> None:
+    def save(self, table: Table) -> None:
+        pass
+
+    def save_many(self, tables: list[Table]) -> None:
+        pass
+    
+    def delete_by_id(self, table_id: int) -> None:
         pass
 
 
 class ChairRepo(Protocol):
     def get_free(self) -> list[Chair] | None:
         pass
+    
+    def get_by_id(self, chair_id: int) -> Chair | None:
+        pass
 
-    def get_occupied_by_table_id(self, table_id: int) -> list[Chair] | None:
+    def get_busy_by_table_id(self, table_id: int) -> list[Chair] | None:
+        pass
+
+    def save(self, chair: Chair) -> None:
         pass
 
     def save_many(self, chairs: list[Chair]) -> None:
+        pass
+    
+    def delete_by_id(self, chair_id: int) -> None:
+        pass
+    
+    def delete_table_by_id(self, table_id: int) -> None:
+        pass
+    
+    def get_all(self) -> list[Chair] | None:
         pass
 
 
@@ -72,6 +99,9 @@ class OrderRepo(Protocol):
         pass
 
     def get_paid_from_oldest(self) -> list[Order] | None:
+        pass
+    
+    def get_active_by_table_id(self, table_id: int) -> list[Order] | None:
         pass
 
     def save(self, order: Order) -> None:
@@ -96,7 +126,7 @@ class MenuRepo(Protocol):
     def save(self, item: MenuItem) -> None:
         pass
     
-    def delete(self, name: str) -> None:
+    def delete_by_name(self, name: str) -> None:
         pass
 
 
