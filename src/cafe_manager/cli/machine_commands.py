@@ -1,18 +1,49 @@
+from uuid import UUID
 import typer
 from typing import Annotated
+from rich.console import Console
+from rich.table import Table
+
+from cafe_manager.applications.use_cases.machine_handlers import (
+    CoffeeMachineBuyHandler,
+    CoffeeMachineDiscardHandler,
+    CoffeeMachineInfoHandler,
+    CoffeeMachineResumeHandler,
+    CoffeeMachineServiceHandler,
+)
+from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.common.exceptions import (
+    AccountNotFoundError,
+    CLIBusinessError,
+    CoffeeMachineNotFoundError,
+    CoffeeMachineStateError,
+    InsufficientBudgetError,
+)
+from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
+    SQLiteCoffeeMachineRepo,
+)
+from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
+    SQLiteFinanceRepo,
+)
 
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
 
-app = typer.Typer()
+console = Console()
+app = typer.Typer(callback=init_context)
 
 
 @app.command()
 def buy(
+    ctx: typer.Context,
     price: Annotated[
         Money,
         typer.Option(
-            "--price", "-p", help="Price of the coffee-machine", parser=parse_money
+            "--price",
+            "-p",
+            help="Price of the coffee-machine",
+            parser=parse_money,
+            metavar="MONEY",
         ),
     ],
     model: Annotated[
@@ -28,25 +59,161 @@ def buy(
             callback=validate_non_negative,
         ),
     ] = 1000,
+    account: Annotated[
+        UUID | None,
+        typer.Option(
+            "--account",
+            "--account-id",
+            "-a",
+            help="Id of the financial account to take money from",
+        ),
+    ] = None,
 ):
-    pass
+    """Buy new coffee-machine"""
+    env_path = get_env_path(ctx)
+    finance_repo = SQLiteFinanceRepo(env_path)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    handler = CoffeeMachineBuyHandler(finance_repo, machine_repo)
+
+    try:
+        handler.handle(price=price, model=model, limit=limit, account_id=account)
+        console.print(
+            f"[bold blue]Coffee-machine of model '{model}' was bought[/bold blue]"
+        )
+    except (AccountNotFoundError, InsufficientBudgetError) as e:
+        raise CLIBusinessError(str(e))
 
 
 @app.command()
 def discard(
+    ctx: typer.Context,
     machine: Annotated[
         int,
-        typer.Option("--machine", "-m", "--machine-id", help="Id of the coffee-machine", callback=validate_non_negative),
+        typer.Option(
+            "--machine",
+            "-m",
+            "--machine-id",
+            help="Id of the coffee-machine",
+            callback=validate_non_negative,
+        ),
     ],
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            "-f",
+            help="Don't ask your permission before performing",
+            prompt="Are you sure you want to discard coffee-machine?",
+        ),
+    ] = True,
 ):
-    pass
+    """Discard coffee-machine by ID"""
+    env_path = get_env_path(ctx)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    handler = CoffeeMachineDiscardHandler(machine_repo)
+
+    try:
+        handler.handle(machine)
+        console.print(
+            f"[bold blue]Coffee-machine with ID {machine} was discarded[/bold blue]"
+        )
+    except CoffeeMachineNotFoundError as e:
+        raise CLIBusinessError(str(e))
+
+
+@app.command()
+def info(
+    ctx: typer.Context,
+    expanded: Annotated[
+        bool, typer.Option("--expended", "-e", help="Expand info about machines")
+    ] = False,
+) -> None:
+    """Show info about machines"""
+    env_path = get_env_path(ctx)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    handler = CoffeeMachineInfoHandler(machine_repo)
+
+    machines = handler.handle()
+
+    table = Table(title="coffee-machines")
+    table.add_column("", min_width=7)
+    table.add_column("id", min_width=10)
+    if expanded:
+        table.add_column("model", min_width=10)
+        table.add_column("state", min_width=10)
+        table.add_column("maintenance limit", min_width=15)
+        table.add_column("cycles count", min_width=20)
+
+    for i, machine in enumerate(machines):
+        params = [i + 1, machine.machine_id]
+        if expanded:
+            params.extend(
+                [
+                    machine.model,
+                    machine._state,
+                    machine.maintenance_limit,
+                    machine.cycles_count,
+                ]
+            )
+
+        str_params = map(str, params)
+        table.add_row(*str_params)
+
+    if table.row_count > 0:
+        console.print(table)
 
 
 @app.command()
 def service(
+    ctx: typer.Context,
     machine: Annotated[
         int,
-        typer.Option("--machine", "-m", "--machine-id", help="Id of the coffee-machine", callback=validate_non_negative),
+        typer.Option(
+            "--machine",
+            "-m",
+            "--machine-id",
+            help="Id of the coffee-machine",
+            callback=validate_non_negative,
+        ),
     ],
 ):
-    pass
+    """Carry out technical maintenance"""
+    env_path = get_env_path(ctx)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    handler = CoffeeMachineServiceHandler(machine_repo)
+
+    try:
+        handler.handle(machine)
+        console.print(
+            f"[bold blue]Coffee-machine with ID {machine} was given for maintenance[/bold blue]"
+        )
+    except (CoffeeMachineNotFoundError, CoffeeMachineStateError) as e:
+        raise CLIBusinessError(str(e))
+
+
+@app.command()
+def resume(
+    ctx: typer.Context,
+    machine: Annotated[
+        int,
+        typer.Option(
+            "--machine",
+            "-m",
+            "--machine-id",
+            help="Id of the coffee-machine",
+            callback=validate_non_negative,
+        ),
+    ],
+):
+    """Resume coffee-machine work after maintenance"""
+    env_path = get_env_path(ctx)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    handler = CoffeeMachineResumeHandler(machine_repo)
+
+    try:
+        handler.handle(machine)
+        console.print(
+            f"[bold blue]Coffee-machine with ID {machine} was taken from maintenance[/bold blue]"
+        )
+    except (CoffeeMachineNotFoundError, CoffeeMachineStateError) as e:
+        raise CLIBusinessError(str(e))

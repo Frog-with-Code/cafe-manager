@@ -279,3 +279,29 @@ class SQLiteCoffeeMachineRepo(AbstractSQliteRepo, CoffeeMachineRepo):
                 ),
             )
             conn.commit()
+
+    def delete_by_id(self, machine_id: int) -> None:
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM coffee_machines WHERE id = ?", (machine_id,))
+            conn.commit()
+
+    def get_by_id(self, machine_id: int) -> CoffeeMachine | None:
+        with self._get_connection() as conn:
+            row = conn.execute(
+                "SELECT * from coffee_machines WHERE id = ?", (machine_id,)
+            ).fetchone()
+
+            if not row:
+                return None
+
+            return self._convert_to_entity(row)
+
+    def get_all(self) -> list[CoffeeMachine] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute("SELECT * from coffee_machines").fetchall()
+
+            if not rows:
+                return None
+
+            machines = [self._convert_to_entity(row) for row in rows]
+            return machines

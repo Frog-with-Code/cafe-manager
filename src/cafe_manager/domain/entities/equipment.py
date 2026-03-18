@@ -25,7 +25,8 @@ class CoffeeMachineState(StrEnum):
     GRINDING = "grinding"
     BREWING = "brewing"
     STEAMING = "steaming"
-    MAINTENANCE = "maintenance"
+    SERVICE_REQUIRED = "service-required"
+    IN_SERVICE = "in-service"
 
 
 class ChairState(StrEnum):
@@ -178,7 +179,7 @@ class CoffeeMachine:
 
         self._state = CoffeeMachineState.GRINDING
         for _ in track(
-            range(0, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
+            range(0, self.PROGRESS_TOTAL, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
             description="Grinding...",
         ):
             time.sleep(self.GRINDING_TIME / self.PROGRESS_STEPS)
@@ -191,10 +192,10 @@ class CoffeeMachine:
 
         self._state = CoffeeMachineState.BREWING
         for _ in track(
-            range(0, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
+            range(0, self.PROGRESS_TOTAL, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
             description="Brewing...",
         ):
-            time.sleep(self.BREWING_TIME / self.PROGRESS_STEPS)
+            time.sleep(self.BREWING_TIME // self.PROGRESS_STEPS)
 
     def _steam(self) -> None:
         if self._state != CoffeeMachineState.BREWING:
@@ -204,28 +205,35 @@ class CoffeeMachine:
 
         self._state = CoffeeMachineState.STEAMING
         for _ in track(
-            range(0, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
+            range(0, self.PROGRESS_TOTAL, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
             description="Steaming...",
         ):
             time.sleep(self.STEAMING_TIME / self.PROGRESS_STEPS)
 
-    def maintenance(self) -> None:
+    def service(self) -> None:
         match (self._state):
-            case CoffeeMachineState.IDLE:
-                print("Maintenance is not needed yet")
-            case CoffeeMachineState.MAINTENANCE:
-                self._state = CoffeeMachineState.IDLE
+            case CoffeeMachineState.SERVICE_REQUIRED:
+                self._state = CoffeeMachineState.IN_SERVICE
                 self.cycles_count = 0
             case (
                 CoffeeMachineState.GRINDING
                 | CoffeeMachineState.BREWING
                 | CoffeeMachineState.STEAMING
+                | CoffeeMachineState.IN_SERVICE
             ):
                 raise CoffeeMachineStateError(
                     "Impossible to carry out maintenance during working process"
                 )
             case _:
                 raise CoffeeMachineStateError("UnknownState")
+
+    def resume(self) -> None:
+        if self._state == CoffeeMachineState.IN_SERVICE:
+            self._state = CoffeeMachineState.IDLE
+
+        raise CoffeeMachineStateError(
+            "Impossible to resume work of coffee-machine, which is not in service"
+        )
 
     def make_coffee(self, coffee: MenuItem) -> None:
         if self._state != CoffeeMachineState.IDLE:
@@ -239,4 +247,3 @@ class CoffeeMachine:
 
         self._state = CoffeeMachineState.IDLE
         self.cycles_count += 1
-        print("Coffee is made!")
