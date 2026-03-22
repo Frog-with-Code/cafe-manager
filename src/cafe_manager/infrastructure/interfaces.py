@@ -1,10 +1,11 @@
 from typing import Protocol
 from uuid import UUID
+from datetime import datetime
 
 from cafe_manager.domain.entities.people import Client, Employee
 from cafe_manager.domain.entities.equipment import Table, Chair, CoffeeMachine
 from cafe_manager.domain.entities.menu import Ingredient, MenuItem
-from cafe_manager.domain.entities.finance import Account
+from cafe_manager.domain.entities.finance import Account, Transaction
 from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.entities.cafe import Cafe
 
@@ -37,6 +38,14 @@ class FinanceRepo(Protocol):
         pass
 
     def get_primary(self) -> Account | None:
+        pass
+
+    def get_transactions_by_period(
+        self, account_id: UUID, start_date: datetime | None, end_date: datetime | None
+    ) -> list[Transaction] | None:
+        pass
+
+    def get_latest_transactions(self, account_id: UUID, limit: int) -> list[Transaction] | None:
         pass
 
 

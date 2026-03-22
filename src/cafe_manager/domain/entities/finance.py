@@ -64,6 +64,11 @@ class Money:
         if not isinstance(other, Money):
             return NotImplemented
         return Money(self.amount + other.amount)
+    
+    def __radd__(self, other: object) -> "Money":
+        if not isinstance(other, Money):
+            return NotImplemented
+        return Money(self.amount + other.amount)
 
     def __sub__(self, other: object) -> "Money":
         if not isinstance(other, Money):

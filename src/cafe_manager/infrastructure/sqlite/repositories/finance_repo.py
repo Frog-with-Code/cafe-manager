@@ -1,9 +1,10 @@
 from cafe_manager.common.exceptions import RecordNotUpdatedError
+from cafe_manager.infrastructure.interfaces import FinanceRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.finance import *
 
 
-class SQLiteFinanceRepo(AbstractSQliteRepo):
+class SQLiteFinanceRepo(AbstractSQliteRepo, FinanceRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 
@@ -89,7 +90,7 @@ class SQLiteFinanceRepo(AbstractSQliteRepo):
 
             if cursor.rowcount == 0:
                 raise RecordNotUpdatedError(
-                    f"Impossible to set account with id {account_id} as primary, because it doesn't exist"
+                    f"Impossible to set account with ID {account_id} as primary, because it doesn't exist"
                 )
             conn.commit()
 
@@ -126,3 +127,41 @@ class SQLiteFinanceRepo(AbstractSQliteRepo):
                     params,
                 )
             conn.commit()
+
+    def get_transactions_by_period(
+        self, account_id: UUID, start_date: datetime | None, end_date: datetime | None
+    ) -> list[Transaction] | None:
+        query = "SELECT * FROM transactions WHERE account_id = ?"
+        params: list[Any] = [account_id]
+
+        if start_date:
+            query += " AND time >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND time <= ?"
+            params.append(end_date)
+
+        query += " ORDER BY time DESC"
+
+        with self._get_connection() as conn:
+            rows = conn.execute(query, tuple(params)).fetchall()
+            return [self._convert_to_entity(row) for row in rows]
+
+    def get_latest_transactions(
+        self, account_id: UUID, limit: int = 10
+    ) -> list[Transaction] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM transactions 
+                WHERE account_id = ? 
+                ORDER BY time DESC 
+                LIMIT ?
+                """,
+                (account_id, limit),
+            ).fetchall()
+
+            if not rows:
+                return None
+
+            return [self._convert_to_entity(row) for row in rows]
