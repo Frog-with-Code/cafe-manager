@@ -98,6 +98,7 @@ class SQLiteClientRepo(AbstractSQliteRepo):
                 """
                 CREATE TABLE IF NOT EXISTS clients (
                     id TEXT PRIMARY KEY,
+                    name TEXT,
                     total_spent MONEY,
                     orders_amount INTEGER,
                     registered_at DATETIME
@@ -109,6 +110,7 @@ class SQLiteClientRepo(AbstractSQliteRepo):
     def _convert_to_entity(self, row: sqlite3.Row) -> Client:
         return Client(
             client_id=row["id"],
+            name=row['name'],
             total_spent=row["total_spent"],
             orders_amount=row["orders_amount"],
             registered_at=row["registered_at"],
@@ -129,15 +131,17 @@ class SQLiteClientRepo(AbstractSQliteRepo):
         with self._get_connection() as conn:
             conn.execute(
                 """
-                INSERT INTO clients (id, total_spent, orders_amount, registered_at)
-                VALUES(?, ?, ?, ?)
+                INSERT INTO clients (id, name, total_spent, orders_amount, registered_at)
+                VALUES(?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
                 total_spent = excluded.total_spent,
                 orders_amount = excluded.orders_amount, 
                 registered_at = excluded.registered_at
                 """,
                 (
                     client.client_id,
+                    client.name,
                     client.total_spent,
                     client.orders_amount,
                     client.registered_at,
