@@ -17,6 +17,7 @@ class OrderState(StrEnum):
     PAID = "paid"
     IN_PROGRESS = "in-progress"
     READY = "ready"
+    COMPLETED = "completed"
     CANCELLED = "cancelled"
 
 
@@ -96,16 +97,14 @@ class Order:
 
         self._state = OrderState.PAID
         self.paid_at = datetime.now()
-        print("Order is paid")
 
-    def start_cooking(self, employee_id: UUID) -> None:
+    def start_cooking(self, employee_id: str) -> None:
         match (self._state):
             case OrderState.AWAITING_PAYMENT:
                 raise OrderStateError("Order is not paid")
             case OrderState.PAID:
                 self._state = OrderState.IN_PROGRESS
                 self.employee_id = employee_id
-                print("Order is cooking")
             case _:
                 raise OrderStateError("Order is already cooked or cancelled")
 
@@ -114,14 +113,10 @@ class Order:
             raise OrderStateError("Order is not cooking")
 
         self._state = OrderState.READY
-        print(f"Order {self.order_id} is ready")
 
     def cancel(self) -> None:
         match (self._state):
             case OrderState.AWAITING_PAYMENT:
                 self._state = OrderState.CANCELLED
-                print(f"Order {self.order_id} was cancelled")
-            case OrderState.CANCELLED:
-                print("Order is already cancelled")
             case _:
                 raise OrderStateError("Impossible to cancel paid order")

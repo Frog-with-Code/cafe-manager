@@ -1,3 +1,4 @@
+from cafe_manager.infrastructure.interfaces import OrderRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.order import *
 from cafe_manager.domain.entities.menu import (
@@ -8,7 +9,7 @@ from cafe_manager.domain.entities.menu import (
 )
 
 
-class SQLiteOrderRepo(AbstractSQliteRepo):
+class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 
@@ -120,6 +121,8 @@ class SQLiteOrderRepo(AbstractSQliteRepo):
                     INSERT INTO orders (id, client_id, table_id, items, created_at, paid_at, total_price, state) 
                     VALUES(?, ?, ?, ?, ?, ?, ?, ?) 
                     ON CONFLICT(id) DO UPDATE SET
+                    client_id = excluded.client_id,
+                    table_id = excluded.table_id,
                     items = excluded.items,       
                     paid_at = excluded.paid_at,    
                     total_price = excluded.total_price, 
@@ -137,3 +140,28 @@ class SQLiteOrderRepo(AbstractSQliteRepo):
                 ),
             )
             conn.commit()
+
+    def get_active_by_table_id(self, table_id: int) -> list[Order] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                f"SELECT * from orders WHERE table_id = ? AND state != 'completed'",
+                (table_id,),
+            ).fetchall()
+
+            if not rows:
+                return None
+
+            orders = [self._convert_to_entity(row) for row in rows]
+            return orders
+
+    def get_all_active(self) -> list[Order] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                f"SELECT * from orders WHERE state != 'completed'"
+            ).fetchall()
+            
+            if not rows:
+                return None
+            
+            orders = [self._convert_to_entity(row) for row in rows]
+            return orders
