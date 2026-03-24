@@ -29,3 +29,4 @@ def validate_non_negative(num: int | float | None) -> int | float | None:
         )
 
     return num
+

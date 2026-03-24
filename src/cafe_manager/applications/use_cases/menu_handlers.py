@@ -42,18 +42,17 @@ class MenuAddItemHandler:
         name: str,
         price: Money,
         category: MenuItemCategory,
-        requires_milk_foam: bool,
         ingredients_data: dict[str, dict[str, float]],
         overwrite: bool,
     ) -> None:
-        if not overwrite and self._menu_repo.get_by_names({name}):
+        if not overwrite and self._menu_repo.get_by_name(name):
             raise MenuItemExistsError(f"Menu item with name '{name}' already exists")
 
         ingredients = {
             Ingredient(name, Unit(data["unit"])): data["amount"]
             for name, data in ingredients_data.items()
         }
-        recipe = Recipe(ingredients=ingredients, requires_milk_foam=requires_milk_foam)
+        recipe = Recipe(ingredients=ingredients)
         item = MenuItem(name=name, recipe=recipe, price=price, category=category)
 
         self._menu_repo.save(item)
@@ -64,9 +63,9 @@ class MenuItemRemoveHandler:
         self._menu_repo = menu_repo
 
     def handle(self, name: str) -> None:
-        if self._menu_repo.get_by_names({name}) is None:
+        if self._menu_repo.get_by_name(name) is None:
             raise MenuItemNotFoundError(
                 f"Impossible to remove item with name '{name}', because it doesn't exist"
             )
 
-        self._menu_repo.delete(name)
+        self._menu_repo.delete_by_name(name)

@@ -14,4 +14,7 @@ def init_context(ctx: typer.Context) -> None:
         raise CLIBusinessError("Impossible to execute command. No active cafe environment")
     
     ctx.obj = {"active_env": active_env}
+    
+def get_env_path(ctx: typer.Context) -> Path:
+    return ctx.obj['active_env']
         

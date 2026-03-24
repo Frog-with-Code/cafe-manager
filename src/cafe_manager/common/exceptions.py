@@ -11,15 +11,26 @@ class TableError(ExpectedError):
     pass
 
 
+class TableNotFoundError(TabError):
+    pass
+
+
 class TableStateError(TableError):
     pass
 
 
-class TableOccupationError(TableError):
+class TableReservationError(TableError):
+    pass
+
+
+class TableSuitableNotFoundError(TableError):
     pass
 
 
 class TableCleaningError(TableError):
+    pass
+
+class TableBusyError(TableError):
     pass
 
 
@@ -35,6 +46,14 @@ class ChairStateError(ChairError):
     pass
 
 
+class ChairShortageError(ChairError):
+    pass
+
+
+class ChairNotFoundError(ChairError):
+    pass
+
+
 class CoffeeMachineStateError(ExpectedError):
     pass
 
@@ -44,6 +63,10 @@ class CoffeeMachinePipelineError(CoffeeMachineStateError):
 
 
 class FinanceError(ExpectedError):
+    pass
+
+
+class AccountNotFoundError(FinanceError):
     pass
 
 
@@ -62,6 +85,8 @@ class OrderError(ExpectedError):
 class OrderStateError(OrderError):
     pass
 
+class OrderNotFoundError(OrderError):
+    pass
 
 class OrderModificationError(OrderError):
     pass
@@ -78,12 +103,17 @@ class OrderPaymentError(OrderError):
 class EmployeeError(ExpectedError):
     pass
 
+class EmployeeNotAssignedError(EmployeeError):
+    pass
 
 class EmployeeStateError(EmployeeError):
     pass
 
 
 class InventoryError(ExpectedError):
+    pass
+
+class InsufficientStocksError(InventoryError):
     pass
 
 
@@ -98,12 +128,36 @@ class MenuError(ExpectedError):
 class RecipeError(MenuError):
     pass
 
+class IngredientError(ExpectedError):
+    pass
+
+class IngredientExistsError(IngredientError):
+    pass
+
+class IngredientNotFoundError(IngredientError):
+    pass
 
 class MenuItemError(MenuError):
     pass
 
+class MenuItemRepeatError(MenuItemError):
+    pass
+
+class CoffeeMachineError(ExpectedError):
+    pass
+
+class CoffeeMachineNotFoundError(CoffeeMachineError):
+    pass
 
 class MenuItemTypeError(MenuItemError):
+    pass
+
+
+class MenuItemExistsError(MenuItemError):
+    pass
+
+
+class MenuItemNotFoundError(MenuItemError):
     pass
 
 
@@ -124,6 +178,10 @@ class KitchenReadyError(KitchenError):
 
 
 class NotFoundError(ExpectedError):
+    pass
+
+
+class EmployeeNotFoundError(EmployeeError):
     pass
 
 
@@ -170,6 +228,12 @@ class CafeInitError(CafeError):
 class CLIBusinessError(ClickException):
     pass
 
+class ClientError(ExpectedError):
+    pass
+
+class ClientNotFoundError(ClientError):
+    pass
+
 
 class CLIUnexpectedError(Exception):
     exit_code = 1
@@ -190,9 +254,11 @@ class CLIUnexpectedError(Exception):
                 border_style="yellow",
             )
         )
-        
+
+
 class DBError(Exception):
     pass
+
 
 class RecordNotUpdatedError(DBError):
     pass

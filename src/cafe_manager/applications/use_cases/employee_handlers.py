@@ -11,17 +11,18 @@ class EmployeeHireHandler:
         self._employee_repo = employee_repo
         self._id_generator = id_generator
 
-    def handle(self, name: str) -> None:
+    def handle(self, name: str) -> str:
         while True:
             generated_id = self._id_generator.generate_unique_code(Employee)
             employee = self._employee_repo.get_by_id(generated_id)
 
-            if not employee:
+            if employee is None:
                 break
 
         new_employee = Employee(name=name, employee_id=generated_id)
-
         self._employee_repo.save(new_employee)
+
+        return generated_id
 
 
 class EmployeeFireHandler:

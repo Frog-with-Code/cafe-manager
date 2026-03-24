@@ -33,8 +33,10 @@ def hire(
     )
 
     try:
-        handler.handle(name)
-        console.print(f"[bold blue]{name} was hired as new employee[/bold blue]")
+        employee_id = handler.handle(name)
+        console.print(
+            f"[bold blue]Employee was hired with ID {employee_id}[/bold blue]"
+        )
     except RuntimeError as e:
         raise CLIBusinessError(str(e))
 
@@ -55,7 +57,7 @@ def fire(
     try:
         handler.handle(employee_id)
         console.print(
-            f"[bold blue]Employee with id {employee_id} was fired[/bold blue]"
+            f"[bold blue]Employee was fired[/bold blue]"
         )
     except EmployeeNotFoundError as e:
         raise CLIBusinessError(str(e))

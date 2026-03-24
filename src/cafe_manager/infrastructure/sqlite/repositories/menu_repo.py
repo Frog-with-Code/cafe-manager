@@ -1,8 +1,9 @@
+from cafe_manager.infrastructure.interfaces import MenuRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.menu import *
 
 
-class SQLiteMenuRepo(AbstractSQliteRepo):
+class SQLiteMenuRepo(AbstractSQliteRepo, MenuRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 
@@ -12,7 +13,6 @@ class SQLiteMenuRepo(AbstractSQliteRepo):
                 """
                     CREATE TABLE IF NOT EXISTS menu (
                     name TEXT PRIMARY KEY,
-                    requires_milk_foam TEXT,
                     ingredients INGR_DICT,
                     price MONEY,
                     category TEXT
@@ -24,33 +24,30 @@ class SQLiteMenuRepo(AbstractSQliteRepo):
         return MenuItem(
             name=row["name"],
             recipe=Recipe(
-                row["requires_milk_foam"] == "True",
                 convert_ingredients_dict(row["ingredients"]),
             ),
             price=row["price"],
             category=MenuItemCategory(row["category"]),
         )
 
-    def get_by_names(self, names: set[str]) -> set[MenuItem] | None:
+    def get_by_name(self, name: str) -> MenuItem | None:
         with self._get_connection() as conn:
-            placeholders = ", ".join(["?"] * len(names))
-            rows = conn.execute(
-                f"SELECT * from menu WHERE name IN ({placeholders})",
-                tuple(names),
-            ).fetchall()
+            row = conn.execute(
+                f"SELECT * from menu WHERE name = ?",
+                (name,),
+            ).fetchone()
 
-            if not rows:
+            if not row:
                 return None
 
-            items = [self._convert_to_entity(row) for row in rows]
-            return set(items)
+            return self._convert_to_entity(row)
 
     def get_all(self) -> set[MenuItem] | None:
         with self._get_connection() as conn:
             rows = conn.execute(
                 f"SELECT * from menu",
             ).fetchall()
-            
+
             if not rows:
                 return None
 
@@ -61,28 +58,22 @@ class SQLiteMenuRepo(AbstractSQliteRepo):
         with self._get_connection() as conn:
             conn.execute(
                 """
-                    INSERT INTO menu (name, requires_milk_foam, ingredients, price, category)
-                    VALUES(?, ?, ?, ?, ?)
+                    INSERT INTO menu (name, ingredients, price, category)
+                    VALUES(?, ?, ?, ?)
                     ON CONFLICT(name) DO UPDATE SET
-                    requires_milk_foam = excluded.requires_milk_foam,
                     ingredients = excluded.ingredients,
                     price = excluded.price,
                     category = excluded.category
                 """,
                 (
                     item.name,
-                    str(item.recipe.requires_milk_foam),
                     adapt_ingredients_dict(item.recipe.ingredients),
                     item.price,
                     str(item.category),
                 ),
             )
-            
-    def delete(self, name: str) -> None:
+
+    def delete_by_name(self, name: str) -> None:
         with self._get_connection() as conn:
-            conn.execute(
-                "DELETE FROM menu WHERE name = ?", 
-                (name,)
-            )
+            conn.execute("DELETE FROM menu WHERE name = ?", (name,))
             conn.commit()
-            

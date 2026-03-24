@@ -7,7 +7,8 @@ from .menu_commands import app as menu_app
 from .order_commands import app as order_app
 from .table_commands import app as table_app
 from .cafe_commands import app as cafe_app
-
+from .finance_commands import app as finance_app
+from .client_commands import app as client_app
 
 __all__ = [
     "chair_app",
@@ -18,5 +19,7 @@ __all__ = [
     "menu_app",
     "order_app",
     "table_app",
-    "cafe_app"
+    "cafe_app",
+    "finance_app",
+    "client_app"
 ]

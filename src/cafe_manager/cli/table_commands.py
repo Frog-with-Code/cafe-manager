@@ -16,11 +16,13 @@ from cafe_manager.cli.context import get_env_path, init_context
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     ChairNotFoundError,
+    ChairShortageError,
     InsufficientBudgetError,
     AccountNotFoundError,
     TableBusyError,
     TableNotFoundError,
     TablePlacesError,
+    TableSuitableNotFoundError,
 )
 from cafe_manager.domain.services.seating_service import SeatingService
 from cafe_manager.infrastructure.interfaces import TableRepo
@@ -136,7 +138,7 @@ def info(
     tables = handler.handle()
 
     rich_table = RichTable(title="tables")
-    rich_table.add_column("", min_width=7)
+    rich_table.add_column("")
     rich_table.add_column("id", min_width=10)
     if expanded:
         rich_table.add_column("capacity", min_width=10)
@@ -173,9 +175,15 @@ def reserve(
     handler = TableReserveHandler(table_repo, chair_repo, seating_service)
 
     try:
-        handler.handle(seats)
-    except:
-        console.print(f"[bold blue]Table was reserved[/bold blue]")
+        table_id = handler.handle(seats)
+        console.print(f"[bold blue]Table with ID {table_id} was reserved[/bold blue]")
+    except (
+        TableNotFoundError,
+        ChairNotFoundError,
+        TableSuitableNotFoundError,
+        ChairShortageError,
+    ) as e:
+        raise CLIBusinessError(str(e))
 
 
 @app.command()
@@ -196,6 +204,7 @@ def free(
 
     try:
         handler.handle(table)
+        console.print(f"[bold blue]Table with ID was reserved[/bold blue]")
     except (TableNotFoundError, TableBusyError) as e:
         raise CLIBusinessError(str(e))
 

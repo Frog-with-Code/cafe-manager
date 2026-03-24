@@ -5,14 +5,13 @@ from cafe_manager.common.exceptions import (
     CLIUnexpectedError,
     CLIBusinessError,
     CafeEnvNameError,
-    RecordNotUpdatedError,
 )
 from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
     SQLiteFinanceRepo,
 )
 
 from .custom_types import Money, parse_money
-from .context import init_context, BASE_DIR
+from .context import get_env_path, init_context, BASE_DIR
 from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
 from cafe_manager.applications.use_cases.cafe_handlers import *
 from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
@@ -56,6 +55,7 @@ def remove(
             "--force",
             "-f",
             prompt="Warning! This operation is not reversible. Are you sure you want to delete this cafe?",
+            help="Don't ask your permission before performing"
         ),
     ] = False,
 ):
@@ -67,8 +67,6 @@ def remove(
             print(f"Cafe environment with name {name} was deleted")
     except CafeEnvNotFoundError as e:
         raise CLIBusinessError(str(e))
-    except Exception as e:
-        raise CLIUnexpectedError(str(e))
 
 
 @app.command()
@@ -84,8 +82,6 @@ def activate(
         print(f"Cafe environment with name {name} was activated")
     except CafeEnvNoActiveError as e:
         raise CLIBusinessError(str(e))
-    except Exception as e:
-        raise CLIUnexpectedError(str(e))
 
 
 @app.command()
@@ -97,8 +93,6 @@ def deactivate():
         print(f"Cafe environment was deactivated")
     except CafeEnvNoActiveError as e:
         pass
-    except Exception as e:
-        raise CLIUnexpectedError(str(e))
 
 
 @app.command()
@@ -127,5 +121,13 @@ def init(
         handler.handle(name, address, capital)
     except CafeEnvAlreadyInitError as e:
         raise CLIBusinessError(str(e))
-    except Exception as e:
-        raise CLIUnexpectedError(str(e))
+    
+@app.command(name="list")
+def env_list(ctx: typer.Context) -> None:
+    """Show list of cafe environments"""
+    env_manager = EnvironmentManager()
+    active_env = env_manager.get_active_env_path(BASE_DIR)
+    
+    for env in BASE_DIR.glob("*.db"):
+        active_sign = " *" if env == active_env else ""
+        print(f"{env.stem + active_sign:<30} {env.resolve()}")

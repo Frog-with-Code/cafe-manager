@@ -33,8 +33,8 @@ class TableBuyHandler:
             if account_id
             else self._finance_repo.get_primary()
         )
-        if not account:
-            raise AccountNotFoundError(f"Account with id {account_id} was not found")
+        if account is None:
+            raise AccountNotFoundError(f"Account was not found")
 
         if account.balance < price:
             raise InsufficientBudgetError(
@@ -81,7 +81,7 @@ class TableReserveHandler:
         self._chair_repo = chair_repo
         self._seating_service = seating_service
 
-    def handle(self, seats_required: int) -> None:
+    def handle(self, seats_required: int) -> int:
         tables = self._table_repo.get_all()
         free_chairs = self._chair_repo.get_free()
 
@@ -90,14 +90,13 @@ class TableReserveHandler:
         if not free_chairs:
             raise ChairNotFoundError("Impossible to reserve. No free chairs found")
 
-        try:
-            _, modified_tables, modified_chairs = self._seating_service.reserve(
-                tables, free_chairs, seats_required
-            )
-        except (TableSuitableNotFoundError, ChairShortageError) as e:
-            raise TableReservationError(
-                f"Impossible to reserve any table for {seats_required} people"
-            ) from e
+        reserved_table, modified_tables, modified_chairs = (
+            self._seating_service.reserve(tables, free_chairs, seats_required)
+        )
+
+        self._table_repo.save_many(modified_tables)
+        self._chair_repo.save_many(modified_chairs)
+        return reserved_table.table_id or -1
 
 
 class AssignChairToTableHandler:

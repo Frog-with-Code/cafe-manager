@@ -28,6 +28,7 @@ class Order:
         items: dict[MenuItem, int],
         client_id: str | None = None,
         table_id: int | None = None,
+        machine_id: int | None = None,
         created_at: datetime | None = None, 
         paid_at: datetime | None = None,
         total_price: Money | None = None,
@@ -37,6 +38,7 @@ class Order:
         self.order_id = order_id
         
         self.table_id = table_id
+        self.machine_id = machine_id
         self.employee_id = None
         self._items = items
         self.created_at = created_at or datetime.now()

@@ -22,9 +22,7 @@ class TableState(StrEnum):
 
 class CoffeeMachineState(StrEnum):
     IDLE = "idle"
-    GRINDING = "grinding"
-    BREWING = "brewing"
-    STEAMING = "steaming"
+    WORKING = "working"
     SERVICE_REQUIRED = "service-required"
     IN_SERVICE = "in-service"
 
@@ -151,12 +149,6 @@ class Table:
 
 
 class CoffeeMachine:
-    PROGRESS_STEPS = 5
-    PROGRESS_TOTAL = 100
-    GRINDING_TIME = 5
-    BREWING_TIME = 5
-    STEAMING_TIME = 5
-
     def __init__(
         self,
         model: str,
@@ -171,56 +163,12 @@ class CoffeeMachine:
         self.cycles_count = cycles_count
         self._state = state
 
-    def _grind(self) -> None:
-        if self._state != CoffeeMachineState.IDLE:
-            raise CoffeeMachinePipelineError(
-                "Impossible to start grinding process. Coffee-machine is not ready to use"
-            )
-
-        self._state = CoffeeMachineState.GRINDING
-        for _ in track(
-            range(0, self.PROGRESS_TOTAL, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
-            description="Grinding...",
-        ):
-            time.sleep(self.GRINDING_TIME / self.PROGRESS_STEPS)
-
-    def _brew(self) -> None:
-        if self._state != CoffeeMachineState.GRINDING:
-            raise CoffeeMachinePipelineError(
-                "Impossible to start brewing process. Coffee beans were not grinded"
-            )
-
-        self._state = CoffeeMachineState.BREWING
-        for _ in track(
-            range(0, self.PROGRESS_TOTAL, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
-            description="Brewing...",
-        ):
-            time.sleep(self.BREWING_TIME // self.PROGRESS_STEPS)
-
-    def _steam(self) -> None:
-        if self._state != CoffeeMachineState.BREWING:
-            raise CoffeeMachinePipelineError(
-                "Impossible to start steaming process. Coffee was not brewed"
-            )
-
-        self._state = CoffeeMachineState.STEAMING
-        for _ in track(
-            range(0, self.PROGRESS_TOTAL, self.PROGRESS_TOTAL // self.PROGRESS_STEPS),
-            description="Steaming...",
-        ):
-            time.sleep(self.STEAMING_TIME / self.PROGRESS_STEPS)
-
     def service(self) -> None:
         match (self._state):
             case CoffeeMachineState.SERVICE_REQUIRED:
                 self._state = CoffeeMachineState.IN_SERVICE
                 self.cycles_count = 0
-            case (
-                CoffeeMachineState.GRINDING
-                | CoffeeMachineState.BREWING
-                | CoffeeMachineState.STEAMING
-                | CoffeeMachineState.IN_SERVICE
-            ):
+            case CoffeeMachineState.WORKING | CoffeeMachineState.IN_SERVICE:
                 raise CoffeeMachineStateError(
                     "Impossible to carry out maintenance during working process"
                 )
@@ -235,15 +183,9 @@ class CoffeeMachine:
             "Impossible to resume work of coffee-machine, which is not in service"
         )
 
-    def make_coffee(self, coffee: MenuItem) -> None:
+    def start(self) -> None:
         if self._state != CoffeeMachineState.IDLE:
             raise CoffeeMachineStateError("Coffee-machine is not ready to use")
-        if not coffee.requires_coffee_machine:
-            raise RecipeError("No coffee-machine needed")
-        self._grind()
-        self._brew()
-        if coffee.requires_milk_foam:
-            self._steam()
 
-        self._state = CoffeeMachineState.IDLE
+        self._state = CoffeeMachineState.WORKING
         self.cycles_count += 1

@@ -40,14 +40,10 @@ class Ingredient:
 
 @dataclass(frozen=True)
 class Recipe:
-    requires_milk_foam: bool
     ingredients: dict[Ingredient, float]
-    
+
     def __hash__(self) -> int:
-        return hash((
-            self.requires_milk_foam,
-            frozenset(self.ingredients.items())
-        ))
+        return hash((frozenset(self.ingredients.items())))
 
 
 @dataclass(frozen=True)
@@ -60,16 +56,15 @@ class MenuItem:
 
     def __post_init__(self) -> None:
         object.__setattr__(
-            self, 
-            'item_type', 
-            MenuItemType.DRINK if self.category in DRINKS_CATEGORIES else MenuItemType.FOOD
-    )
+            self,
+            "item_type",
+            (
+                MenuItemType.DRINK
+                if self.category in DRINKS_CATEGORIES
+                else MenuItemType.FOOD
+            ),
+        )
 
     @property
     def requires_coffee_machine(self) -> bool:
         return self.category == MenuItemCategory.COFFEE
-
-    @property
-    def requires_milk_foam(self) -> bool:
-        return self.recipe.requires_milk_foam
-

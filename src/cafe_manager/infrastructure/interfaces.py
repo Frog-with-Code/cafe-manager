@@ -45,7 +45,9 @@ class FinanceRepo(Protocol):
     ) -> list[Transaction] | None:
         pass
 
-    def get_latest_transactions(self, account_id: UUID, limit: int) -> list[Transaction] | None:
+    def get_latest_transactions(
+        self, account_id: UUID, limit: int
+    ) -> list[Transaction] | None:
         pass
 
 
@@ -108,6 +110,15 @@ class InventoryRepo(Protocol):
     def add_ingredient_by_name(self, name: str, amount: float) -> None:
         pass
 
+    def get_free_by_name(self, name: str) -> float | None:
+        pass
+
+    def reserve(self, ingredients: dict[Ingredient, float]) -> None:
+        pass
+
+    def withdraw(self, ingredients: dict[Ingredient, float]) -> None:
+        pass
+
 
 class OrderRepo(Protocol):
     def get_by_id(self, order_id: str) -> Order | None:
@@ -120,6 +131,9 @@ class OrderRepo(Protocol):
         pass
 
     def get_active_by_table_id(self, table_id: int) -> list[Order] | None:
+        pass
+
+    def get_all_active(self) -> list[Order] | None:
         pass
 
     def save(self, order: Order) -> None:
@@ -144,7 +158,7 @@ class CoffeeMachineRepo(Protocol):
 
 
 class MenuRepo(Protocol):
-    def get_by_names(self, names: set[str]) -> set[MenuItem] | None:
+    def get_by_name(self, name: str) -> MenuItem | None:
         pass
 
     def get_all(self) -> set[MenuItem] | None:

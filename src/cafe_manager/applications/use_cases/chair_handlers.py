@@ -22,8 +22,8 @@ class ChairBuyHandler:
             if account_id
             else self._finance_repo.get_primary()
         )
-        if not account:
-            raise AccountNotFoundError(f"Account with id {account_id} was not found")
+        if account is None:
+            raise AccountNotFoundError(f"Account was not found")
 
         if account.balance < price:
             raise InsufficientBudgetError(

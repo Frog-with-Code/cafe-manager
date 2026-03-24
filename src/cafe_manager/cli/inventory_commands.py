@@ -50,6 +50,7 @@ def add_ingredient(
 
     try:
         handler.handle(name, unit, overwrite)
+        console.print(f"[bold blue]'{name}' was added to the inventory[/bold blue]")
     except IngredientExistsError as e:
         raise CLIBusinessError(str(e))
 
@@ -66,6 +67,7 @@ def remove_ingredient(
 
     try:
         handler.handle(name)
+        console.print(f"[bold blue]'{name}' was removed from the inventory[/bold blue]")
     except IngredientNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -85,16 +87,16 @@ def info(
     ingredients = handler.handle()
 
     table = Table(title="ingredients")
-    table.add_column("", min_width=7)
+    table.add_column("")
     table.add_column("name", min_width=20)
     if expanded:
-        table.add_column("unit", min_width=15)
         table.add_column("amount", min_width=20)
+        table.add_column("unit")
 
     for i, (ingr, amount) in enumerate(ingredients.items()):
         params = [i + 1, ingr.name]
         if expanded:
-            params.extend([ingr.unit, amount])
+            params.extend([amount, ingr.unit])
 
         str_params = map(str, params)
         table.add_row(*str_params)
@@ -110,8 +112,8 @@ def supply(
         str,
         typer.Option("--name", "-n", help="Name of the ingredient"),
     ],
-    amount: Annotated[
-        float, typer.Option("--amount", "-a", help="Amount of ingredients")
+    quantity: Annotated[
+        float, typer.Option("--quantity", "-q", help="Quantity of ingredients")
     ],
     price: Annotated[
         Money,
@@ -137,7 +139,7 @@ def supply(
         typer.Option(
             "--force", "-f", prompt=f"Are you sure you want to buy ingredient?"
         ),
-    ] = False,
+    ] = True,
 ):
     """Supply inventory with existing ingredient"""
     env_path = get_env_path(ctx)
@@ -146,7 +148,10 @@ def supply(
     handler = InventorySupplyHandler(inventory_repo, finance_repo)
 
     try:
-        handler.handle(name=name, amount=amount, price=price, account_id=account)
+        handler.handle(name=name, amount=quantity, price=price, account_id=account)
+        console.print(
+            f"[bold blue]Inventory was supplied by '{name}' in amount of {quantity}[/bold blue]"
+        )
     except (
         AccountNotFoundError,
         IngredientNotFoundError,

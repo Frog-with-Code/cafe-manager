@@ -1,4 +1,3 @@
-from xmlrpc.client import boolean
 import typer
 from typing import Annotated
 from rich.table import Table
@@ -10,12 +9,16 @@ from cafe_manager.applications.use_cases.menu_handlers import (
     MenuItemRemoveHandler,
 )
 from cafe_manager.cli.context import BASE_DIR, get_env_path, init_context
-from cafe_manager.common.exceptions import CLIBusinessError, MenuItemExistsError, MenuItemNotFoundError
+from cafe_manager.common.exceptions import (
+    CLIBusinessError,
+    MenuItemExistsError,
+    MenuItemNotFoundError,
+)
 from cafe_manager.domain.entities.menu import MenuItemCategory
 from cafe_manager.infrastructure.sqlite.repositories.menu_repo import SQLiteMenuRepo
-from cafe_manager.domain.entities.menu import Ingredient, Unit
+from cafe_manager.domain.entities.menu import Unit
 
-from .validation import validate_item_format, validate_non_negative
+from .validation import validate_non_negative
 from .custom_types import Money, parse_money
 
 console = Console()
@@ -40,16 +43,16 @@ def info(
     for menu_type, items in grouped_items.items():
         table = Table(title=f"{str(menu_type)}")
 
-        table.add_column("name")
+        table.add_column("name", min_width=15)
 
         if expanded:
-            table.add_column("price")
-            table.add_column("category")
+            table.add_column("price", min_width=15)
+            table.add_column("category", min_width=15)
 
         for i in items:
             params = [i.name]
             if expanded:
-                params.extend([str(i.category), str(i.price)])
+                params.extend([str(i.price), str(i.category)])
 
             table.add_row(*params)
 
@@ -133,16 +136,16 @@ def add_item(
             name=name,
             price=price,
             category=category,
-            requires_milk_foam=milk_foam,
             ingredients_data=ingredients,
             overwrite=overwrite,
         )
+        console.print(f"[bold blue]{name} was added to the menu[/bold blue]")
     except MenuItemExistsError as e:
         raise CLIBusinessError(str(e))
 
 
 @app.command("remove-item")
-def remove_items(
+def remove_item(
     ctx: typer.Context,
     name: Annotated[
         str,
@@ -153,8 +156,9 @@ def remove_items(
     env_path = get_env_path(ctx)
     menu_repo = SQLiteMenuRepo(env_path)
     handler = MenuItemRemoveHandler(menu_repo)
-    
+
     try:
         handler.handle(name)
+        console.print(f"[bold blue]{name} was removed from the menu[/bold blue]")
     except MenuItemNotFoundError as e:
         raise CLIBusinessError(str(e))

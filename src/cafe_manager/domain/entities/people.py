@@ -58,5 +58,5 @@ class Client:
         self.registered_at = registered_at or datetime.now()
 
     def pay(self, order_price: Money) -> None:
-        self.total_spent = order_price
+        self.total_spent += order_price
         self.orders_amount += 1

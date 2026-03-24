@@ -51,7 +51,6 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
             data.append(
                 {
                     "name": str(item.name),
-                    "requires_milk_foam": str(item.recipe.requires_milk_foam),
                     "ingredients": adapt_ingredients_dict(item.recipe.ingredients),
                     "price": str(item.price.amount),
                     "category": str(item.category),
@@ -70,7 +69,6 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
             i = MenuItem(
                 name=d["name"],
                 recipe=Recipe(
-                    d["requires_milk_foam"] == "True",
                     convert_ingredients_dict(d["ingredients"]),
                 ),
                 price=Money.from_any(d["price"]),
@@ -159,9 +157,9 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
             rows = conn.execute(
                 f"SELECT * from orders WHERE state != 'completed'"
             ).fetchall()
-            
+
             if not rows:
                 return None
-            
+
             orders = [self._convert_to_entity(row) for row in rows]
             return orders

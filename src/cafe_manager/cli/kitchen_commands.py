@@ -1,3 +1,4 @@
+from re import I
 import typer
 from typing import Annotated
 from rich.table import Table
@@ -15,6 +16,13 @@ from cafe_manager.common.exceptions import (
     KitchenOverloadError,
     OrderNotFoundError,
     OrderStateError,
+)
+from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
+from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
+    SQLiteCoffeeMachineRepo,
+)
+from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import (
+    SQLiteInventoryRepo,
 )
 from cafe_manager.infrastructure.sqlite.repositories.order_repo import SQLiteOrderRepo
 from cafe_manager.infrastructure.sqlite.repositories.people_repo import (
@@ -70,23 +78,30 @@ def show_list_pending(
 @app.command()
 def start(
     ctx: typer.Context,
-    employee: Annotated[
+    employee_id: Annotated[
         str | None,
-        typer.Option(
-            "--employee", "--employee-id", "-e", help="Id of the order to start cooking"
-        ),
+        typer.Option("--id", help="Id of the order to start cooking"),
     ] = None,
 ):
     """Start cooking oldest paid order"""
     env_path = get_env_path(ctx)
     order_repo = SQLiteOrderRepo(env_path)
     employee_repo = SQLiteEmployeeRepo(env_path)
-    handler = KitchenStartHandler(order_repo, employee_repo)
+    inventory_repo = SQLiteInventoryRepo(env_path)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    ingredient_calculator = IngredientCalculator()
+    handler = KitchenStartHandler(
+        order_repo=order_repo,
+        employee_repo=employee_repo,
+        inventory_repo=inventory_repo,
+        machine_repo=machine_repo,
+        ingredient_calculator=ingredient_calculator,
+    )
 
     try:
-        order_id = handler.handle(employee)
+        order_id = handler.handle(employee_id)
         if order_id is None:
-            console.print(["[bold blue]No paid orders[/bold blue]"])
+            console.print("[bold blue]No paid orders[/bold blue]")
         else:
             console.print(
                 f"[bold blue]Order with ID {order_id} was handed over for cooking[/bold blue]"
@@ -98,9 +113,9 @@ def start(
 @app.command()
 def complete(
     ctx: typer.Context,
-    order: Annotated[
+    order_id: Annotated[
         str,
-        typer.Option("--order", "--order-id", "-o", help="Id of the order to complete"),
+        typer.Option("--id", help="Id of the order to complete"),
     ],
 ):
     """Complete order in progress"""
@@ -109,6 +124,6 @@ def complete(
     handler = KitchenReadyHandler(order_repo)
 
     try:
-        handler.handle(order)
+        handler.handle(order_id)
     except (OrderNotFoundError, OrderStateError) as e:
         raise CLIBusinessError(str(e))
