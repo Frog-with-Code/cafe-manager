@@ -1,4 +1,4 @@
-from cafe_manager.infrastructure.interfaces import OrderRepo
+from cafe_manager.application.interfaces import OrderRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.order import *
 from cafe_manager.domain.entities.menu import (

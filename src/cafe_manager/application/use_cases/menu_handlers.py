@@ -8,7 +8,7 @@ from cafe_manager.domain.entities.menu import (
     Recipe,
     MenuItemType,
 )
-from cafe_manager.infrastructure.interfaces import MenuRepo
+from cafe_manager.application.interfaces import MenuRepo
 
 
 class MenuInfoHandler:

@@ -4,7 +4,7 @@ from typing import Annotated
 from rich.console import Console
 from rich.table import Table
 
-from cafe_manager.applications.use_cases.machine_handlers import (
+from cafe_manager.application.use_cases.machine_handlers import (
     CoffeeMachineBuyHandler,
     CoffeeMachineDiscardHandler,
     CoffeeMachineInfoHandler,

@@ -4,7 +4,7 @@ from uuid import UUID
 from rich.console import Console
 from rich.table import Table as RichTable
 
-from cafe_manager.applications.use_cases.chair_handlers import (
+from cafe_manager.application.use_cases.chair_handlers import (
     ChairBuyHandler,
     ChairDiscardHandler,
     ChairInfoHandler,

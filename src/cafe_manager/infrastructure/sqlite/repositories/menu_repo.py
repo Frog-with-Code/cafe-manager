@@ -1,4 +1,4 @@
-from cafe_manager.infrastructure.interfaces import MenuRepo
+from cafe_manager.application.interfaces import MenuRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.menu import *
 

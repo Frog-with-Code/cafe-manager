@@ -6,7 +6,7 @@ from cafe_manager.common.exceptions import (
 )
 from cafe_manager.domain.entities.equipment import CoffeeMachine
 from cafe_manager.domain.entities.finance import Money
-from cafe_manager.infrastructure.interfaces import CoffeeMachineRepo, FinanceRepo
+from cafe_manager.application.interfaces import CoffeeMachineRepo, FinanceRepo
 
 
 class CoffeeMachineBuyHandler:

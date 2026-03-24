@@ -1,5 +1,5 @@
 from cafe_manager.domain.entities.people import Employee
-from cafe_manager.infrastructure.interfaces import EmployeeRepo
+from cafe_manager.application.interfaces import ClientRepo, EmployeeRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.people import *
 
@@ -88,7 +88,7 @@ class SQLiteEmployeeRepo(AbstractSQliteRepo, EmployeeRepo):
             return employees
 
 
-class SQLiteClientRepo(AbstractSQliteRepo):
+class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
     def __init__(self, db_path: Path | str):
         super().__init__(db_path)
 

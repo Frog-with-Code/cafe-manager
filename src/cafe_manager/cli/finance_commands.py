@@ -5,7 +5,7 @@ from typing import Annotated
 from rich.console import Console
 from rich.table import Table
 
-from cafe_manager.applications.use_cases.finance_handlers import (
+from cafe_manager.application.use_cases.finance_handlers import (
     FinanceHistoryHandler,
     FinanceInvestHandler,
     FinanceSetPrimaryHandler,
@@ -13,10 +13,8 @@ from cafe_manager.applications.use_cases.finance_handlers import (
 )
 from cafe_manager.cli.context import get_env_path, init_context
 from cafe_manager.cli.custom_types import parse_money, Money
-from cafe_manager.cli.validation import validate_item_format, validate_non_negative
+from cafe_manager.cli.validation import validate_non_negative
 from cafe_manager.common.exceptions import AccountNotFoundError, CLIBusinessError
-from cafe_manager.domain.entities.finance import Transaction
-from cafe_manager.infrastructure.sqlite.repositories import finance_repo
 from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
     SQLiteFinanceRepo,
 )

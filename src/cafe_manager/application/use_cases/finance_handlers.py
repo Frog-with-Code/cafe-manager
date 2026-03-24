@@ -1,9 +1,9 @@
 from typing import Any
 from uuid import UUID
 from datetime import datetime
-from cafe_manager.common.exceptions import AccountNotFoundError, RecordNotUpdatedError
+from cafe_manager.common.exceptions import AccountNotFoundError
 from cafe_manager.domain.entities.finance import Money, Transaction, TransactionType
-from cafe_manager.infrastructure.interfaces import FinanceRepo
+from cafe_manager.application.interfaces import FinanceRepo
 
 
 class FinanceInvestHandler:
@@ -91,7 +91,7 @@ class FinanceSetPrimaryHandler:
     def handle(self, account_id: UUID) -> None:
         try:
             self._finance_repo.set_primary(account_id)
-        except RecordNotUpdatedError as e:
+        except AccountNotFoundError as e:
             raise AccountNotFoundError(
                 f"Account with ID {account_id} was not found"
             ) from e

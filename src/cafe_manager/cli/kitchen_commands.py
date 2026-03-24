@@ -4,7 +4,7 @@ from typing import Annotated
 from rich.table import Table
 from rich.console import Console
 
-from cafe_manager.applications.use_cases.kitchen_handlers import (
+from cafe_manager.application.use_cases.kitchen_handlers import (
     KitchenListPending,
     KitchenReadyHandler,
     KitchenStartHandler,

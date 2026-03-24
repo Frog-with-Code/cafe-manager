@@ -1,5 +1,5 @@
 from cafe_manager.domain.entities.equipment import Chair
-from cafe_manager.infrastructure.interfaces import (
+from cafe_manager.application.interfaces import (
     ChairRepo,
     CoffeeMachineRepo,
     TableRepo,

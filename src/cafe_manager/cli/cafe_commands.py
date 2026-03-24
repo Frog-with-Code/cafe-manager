@@ -13,7 +13,7 @@ from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
 from .custom_types import Money, parse_money
 from .context import get_env_path, init_context, BASE_DIR
 from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
-from cafe_manager.applications.use_cases.cafe_handlers import *
+from cafe_manager.application.use_cases.cafe_handlers import *
 from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
 
 app = typer.Typer()

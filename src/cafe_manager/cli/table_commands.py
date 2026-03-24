@@ -4,7 +4,7 @@ from rich.table import Table as RichTable
 from typing import Annotated
 from uuid import UUID
 
-from cafe_manager.applications.use_cases.table_handlers import (
+from cafe_manager.application.use_cases.table_handlers import (
     AssignChairToTableHandler,
     TableBuyHandler,
     TableDiscardHandler,
@@ -25,7 +25,7 @@ from cafe_manager.common.exceptions import (
     TableSuitableNotFoundError,
 )
 from cafe_manager.domain.services.seating_service import SeatingService
-from cafe_manager.infrastructure.interfaces import TableRepo
+from cafe_manager.application.interfaces import TableRepo
 from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
     SQLiteChairRepo,
     SQLiteTableRepo,

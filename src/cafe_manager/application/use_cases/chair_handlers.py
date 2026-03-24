@@ -8,7 +8,7 @@ from cafe_manager.common.exceptions import (
 )
 from cafe_manager.domain.entities.equipment import Chair
 from cafe_manager.domain.entities.finance import Money
-from cafe_manager.infrastructure.interfaces import ChairRepo, FinanceRepo, TableRepo
+from cafe_manager.application.interfaces import ChairRepo, FinanceRepo, TableRepo
 
 
 class ChairBuyHandler:

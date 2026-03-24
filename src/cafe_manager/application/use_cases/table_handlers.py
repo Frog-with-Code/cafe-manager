@@ -11,7 +11,7 @@ from cafe_manager.common.exceptions import (
 from cafe_manager.domain.entities.equipment import Table
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.domain.services.seating_service import SeatingService
-from cafe_manager.infrastructure.interfaces import (
+from cafe_manager.application.interfaces import (
     ChairRepo,
     FinanceRepo,
     OrderRepo,

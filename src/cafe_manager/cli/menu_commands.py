@@ -3,12 +3,12 @@ from typing import Annotated
 from rich.table import Table
 from rich.console import Console
 
-from cafe_manager.applications.use_cases.menu_handlers import (
+from cafe_manager.application.use_cases.menu_handlers import (
     MenuAddItemHandler,
     MenuInfoHandler,
     MenuItemRemoveHandler,
 )
-from cafe_manager.cli.context import BASE_DIR, get_env_path, init_context
+from cafe_manager.cli.context import get_env_path, init_context
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     MenuItemExistsError,

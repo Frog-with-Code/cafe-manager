@@ -10,10 +10,9 @@ from cafe_manager.common.exceptions import (
     CafeEnvNameSymbolsError,
     CafeEnvNoActiveError,
     CafeEnvNotFoundError,
-    CafeInitError,
 )
 from cafe_manager.domain.entities.finance import Money, Account
-from cafe_manager.infrastructure.interfaces import FinanceRepo, CafeRepo
+from cafe_manager.application.interfaces import FinanceRepo, CafeRepo
 
 
 class CafeCreateHandler:

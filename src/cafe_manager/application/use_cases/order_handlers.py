@@ -19,7 +19,7 @@ from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.services.id_generating_service import IDGeneratingService
 from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
 from cafe_manager.domain.services.payment_service import PaymentService
-from cafe_manager.infrastructure.interfaces import (
+from cafe_manager.application.interfaces import (
     ChairRepo,
     ClientRepo,
     EmployeeRepo,

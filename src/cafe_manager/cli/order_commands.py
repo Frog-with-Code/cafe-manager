@@ -4,7 +4,7 @@ from typing import Annotated
 from rich.console import Console
 from rich.table import Table
 
-from cafe_manager.applications.use_cases.order_handlers import (
+from cafe_manager.application.use_cases.order_handlers import (
     OrderCreateHandler,
     OrderInfoHandler,
     OrderPayHandler,
@@ -48,7 +48,7 @@ from .validation import validate_item_format, validate_non_negative
 from .custom_types import Money, parse_money
 from .context import get_env_path, init_context
 
-app = typer.Typer(help="Commands for order management", callback=init_context)
+app = typer.Typer(callback=init_context)
 console = Console()
 
 

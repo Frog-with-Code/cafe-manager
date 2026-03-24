@@ -1,5 +1,5 @@
-from cafe_manager.common.exceptions import RecordNotUpdatedError
-from cafe_manager.infrastructure.interfaces import FinanceRepo
+from cafe_manager.common.exceptions import AccountNotFoundError
+from cafe_manager.application.interfaces import FinanceRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.finance import *
 
@@ -89,7 +89,7 @@ class SQLiteFinanceRepo(AbstractSQliteRepo, FinanceRepo):
             )
 
             if cursor.rowcount == 0:
-                raise RecordNotUpdatedError(
+                raise AccountNotFoundError(
                     f"Impossible to set account with ID {account_id} as primary, because it doesn't exist"
                 )
             conn.commit()
