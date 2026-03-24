@@ -3,7 +3,6 @@ from cafe_manager.common.exceptions import (
     TableSuitableNotFoundError,
 )
 from cafe_manager.domain.entities.equipment import Table, Chair
-from cafe_manager.common.utils import validate_non_negative
 
 
 class SeatingService:
@@ -126,7 +125,6 @@ class SeatingService:
         free_chairs: list[Chair],
         people_amount: int,
     ) -> tuple[Table, list[Table], list[Chair]]:
-        validate_non_negative(people_amount)
         available_tables = self._get_available_tables(tables)
 
         modified_tables = []

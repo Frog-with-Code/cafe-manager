@@ -83,6 +83,10 @@ class OrderNotFoundError(OrderError):
     pass
 
 
+class OrderIsEmptyError(OrderError):
+    pass
+
+
 class EmployeeError(Exception):
     pass
 

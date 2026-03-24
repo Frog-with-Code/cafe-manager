@@ -1,8 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum
 
 from .finance import Money
-from cafe_manager.common.exceptions import MenuItemTypeError
 
 
 class Unit(StrEnum):
@@ -52,17 +51,13 @@ class MenuItem:
     recipe: Recipe
     price: Money
     category: MenuItemCategory
-    item_type: MenuItemType = field(init=False)
 
-    def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "item_type",
-            (
-                MenuItemType.DRINK
-                if self.category in DRINKS_CATEGORIES
-                else MenuItemType.FOOD
-            ),
+    @property
+    def item_type(self) -> MenuItemType:
+        return (
+            MenuItemType.DRINK
+            if self.category in DRINKS_CATEGORIES
+            else MenuItemType.FOOD
         )
 
     @property

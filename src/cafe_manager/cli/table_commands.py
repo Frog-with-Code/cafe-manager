@@ -189,9 +189,7 @@ def reserve(
 @app.command()
 def free(
     ctx: typer.Context,
-    table: Annotated[
-        int, typer.Option("--table", "--table-id", "-t", help="Id of the table")
-    ],
+    table_id: Annotated[int, typer.Option("--id", help="Id of the table")],
 ):
     """Free reserved or occupied table"""
     env_path = get_env_path(ctx)
@@ -203,8 +201,8 @@ def free(
     )
 
     try:
-        handler.handle(table)
-        console.print(f"[bold blue]Table with ID was reserved[/bold blue]")
+        handler.handle(table_id)
+        console.print(f"[bold blue]Table with ID {table_id} was freed[/bold blue]")
     except (TableNotFoundError, TableBusyError) as e:
         raise CLIBusinessError(str(e))
 

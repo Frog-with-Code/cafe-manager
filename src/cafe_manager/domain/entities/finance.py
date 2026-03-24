@@ -21,7 +21,7 @@ class Money:
     def from_any(cls, amount: Decimal | int | float | str | Money) -> "Money":
         if isinstance(amount, Money):
             return amount
-            
+
         if not isinstance(amount, Decimal):
             try:
                 amount = Decimal(str(amount))
@@ -34,6 +34,9 @@ class Money:
 
     def __post_init__(self) -> None:
         validate_non_negative(self.amount)
+
+        normalized = self.amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        object.__setattr__(self, "amount", normalized)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Money):
@@ -64,7 +67,7 @@ class Money:
         if not isinstance(other, Money):
             return NotImplemented
         return Money(self.amount + other.amount)
-    
+
     def __radd__(self, other: object) -> "Money":
         if not isinstance(other, Money):
             return NotImplemented
@@ -98,8 +101,7 @@ class Money:
         if divisor == 0:
             raise ZeroDivisionError("Cannot divide money by zero")
 
-        raw_amount = self.amount / divisor
-        return Money(raw_amount.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP))
+        return Money(self.amount / divisor)
 
     def __str__(self) -> str:
         return f"{self.amount:.2f} BYN"
@@ -120,7 +122,12 @@ class Transaction:
 
 
 class Account:
-    def __init__(self, account_id: UUID | None = None, balance: Money = Money(), history: list[Transaction] | None = None) -> None:
+    def __init__(
+        self,
+        account_id: UUID | None = None,
+        balance: Money = Money(),
+        history: list[Transaction] | None = None,
+    ) -> None:
         self.account_id = account_id or uuid4()
         self._balance = balance
         self._history = history or []

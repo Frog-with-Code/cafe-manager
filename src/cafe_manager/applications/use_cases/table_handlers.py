@@ -3,13 +3,10 @@ from uuid import UUID
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     ChairNotFoundError,
-    ChairShortageError,
     InsufficientBudgetError,
     TableBusyError,
     TableNotFoundError,
     TablePlacesError,
-    TableReservationError,
-    TableSuitableNotFoundError,
 )
 from cafe_manager.domain.entities.equipment import Table
 from cafe_manager.domain.entities.finance import Money

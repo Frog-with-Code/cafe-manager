@@ -35,7 +35,7 @@ class KitchenStartHandler:
 
     def _start_coffee_machine(self, order: Order) -> tuple[CoffeeMachine | None, Order]:
         needs_coffee_machine = any(
-            item.category == MenuItemCategory.COFFEE for item in order.items.keys()
+            item.requires_coffee_machine for item in order.items.keys()
         )
 
         machine = None

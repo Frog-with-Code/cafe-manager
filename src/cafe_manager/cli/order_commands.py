@@ -46,7 +46,7 @@ from cafe_manager.infrastructure.sqlite.repositories.people_repo import (
 
 from .validation import validate_item_format, validate_non_negative
 from .custom_types import Money, parse_money
-from .context import get_env_path, init_context, BASE_DIR
+from .context import get_env_path, init_context
 
 app = typer.Typer(help="Commands for order management", callback=init_context)
 console = Console()
