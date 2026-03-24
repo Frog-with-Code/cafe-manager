@@ -1,16 +1,11 @@
-import time
 from enum import StrEnum
-from rich.progress import track
 
 from cafe_manager.common.exceptions import (
-    RecipeError,
-    CoffeeMachinePipelineError,
     CoffeeMachineStateError,
     TablePlacesError,
     TableStateError,
     ChairStateError,
 )
-from .menu import MenuItem
 
 
 class TableState(StrEnum):
@@ -44,12 +39,11 @@ class Chair:
         self._table_id = table_id
         self._state = state
 
-    def can_be_reserved(self) -> bool:
-        return self._state == ChairState.AVAILABLE
-
     def reserve(self) -> None:
-        if not self.can_be_reserved():
-            raise ChairStateError("Chair is not available")
+        if self._state != ChairState.AVAILABLE:
+            raise ChairStateError(
+                "Impossible to reserve. Chair is not available to use"
+            )
 
         self._state = ChairState.RESERVED
 
@@ -63,8 +57,6 @@ class Chair:
         self._state = ChairState.AVAILABLE
 
     def assign_to_table(self, table_id: int | None) -> None:
-        if not isinstance(table_id, int):
-            raise ValueError("Incorrect id type")
         self._table_id = table_id
 
 
@@ -82,13 +74,10 @@ class Table:
         self._chairs_ids = chairs_ids or set()
 
     def clean(self) -> None:
-        match (self._state):
-            case TableState.OCCUPIED | TableState.RESERVED:
-                raise TableStateError("Impossible to clean reserved/occupied table")
-            case TableState.DIRTY:
-                self._state = TableState.AVAILABLE
-            case _:
-                raise TableStateError("Unknown state")
+        if self._state in (TableState.RESERVED, TableState.OCCUPIED):
+            raise TableStateError("Impossible to clean reserved/occupied table")
+
+        self._state = TableState.AVAILABLE
 
     @property
     def chairs_ids(self) -> set[int]:
@@ -157,8 +146,9 @@ class CoffeeMachine:
         cycles_count: int = 0,
         state: CoffeeMachineState = CoffeeMachineState.IDLE,
     ) -> None:
-        self.machine_id = machine_id
         self.model = model
+
+        self.machine_id = machine_id
         self.maintenance_limit = maintenance_limit
         self.cycles_count = cycles_count
         self._state = state
@@ -172,16 +162,15 @@ class CoffeeMachine:
                 raise CoffeeMachineStateError(
                     "Impossible to carry out maintenance during working process"
                 )
-            case _:
-                raise CoffeeMachineStateError("UnknownState")
+            case CoffeeMachineState.IDLE:
+                raise CoffeeMachineStateError("No need to carry out maintenance")
 
     def resume(self) -> None:
-        if self._state == CoffeeMachineState.IN_SERVICE:
-            self._state = CoffeeMachineState.IDLE
-
-        raise CoffeeMachineStateError(
-            "Impossible to resume work of coffee-machine, which is not in service"
-        )
+        if self._state != CoffeeMachineState.IN_SERVICE:
+            raise CoffeeMachineStateError(
+                "Impossible to resume work of coffee-machine, which is not in service"
+            )
+        self._state = CoffeeMachineState.IDLE
 
     def start(self) -> None:
         if self._state != CoffeeMachineState.IDLE:
