@@ -24,7 +24,6 @@ from cafe_manager.common.exceptions import (
     TableNotFoundError,
     TableStateError,
 )
-from cafe_manager.domain.entities import order
 from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
 from cafe_manager.domain.services.id_generating_service import IDGeneratingService
 from cafe_manager.domain.services.payment_service import PaymentService

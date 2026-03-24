@@ -9,7 +9,6 @@ from cafe_manager.common.exceptions import (
     MenuItemNotFoundError,
     MenuItemRepeatError,
     OrderNotFoundError,
-    OrderStateError,
     TableNotFoundError,
     TableStateError,
 )
@@ -19,7 +18,6 @@ from cafe_manager.domain.entities.menu import Ingredient, MenuItem
 from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.services.id_generating_service import IDGeneratingService
 from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
-from cafe_manager.domain.services.inventory_service import InventoryService
 from cafe_manager.domain.services.payment_service import PaymentService
 from cafe_manager.infrastructure.interfaces import (
     ChairRepo,

@@ -3,7 +3,6 @@ from .abstract_repo import *
 from cafe_manager.domain.entities.order import *
 from cafe_manager.domain.entities.menu import (
     Recipe,
-    Ingredient,
     MenuItem,
     MenuItemCategory,
 )
@@ -19,9 +18,11 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
                 """
                 CREATE TABLE IF NOT EXISTS orders (
                     id TEXT PRIMARY KEY,
-                    client_id TEXT,
+                    items TEXT,  
                     table_id INTEGER,
-                    items TEXT,     
+                    client_id TEXT,
+                    employee_id TEXT,
+                    machine_id INTEGER,   
                     created_at DATETIME, 
                     paid_at TEXT,
                     total_price MONEY, 
@@ -36,9 +37,11 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
 
         return Order(
             order_id=row["id"],
-            client_id=row["client_id"],
-            table_id=row["table_id"],
             items=items_dict,
+            table_id=row["table_id"],
+            employee_id=row["employee_id"],
+            machine_id=row["machine_id"],
+            client_id=row["client_id"],
             created_at=row["created_at"],
             paid_at=row["paid_at"],
             total_price=row["total_price"],
@@ -116,21 +119,25 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
         with self._get_connection() as conn:
             conn.execute(
                 """
-                    INSERT INTO orders (id, client_id, table_id, items, created_at, paid_at, total_price, state) 
-                    VALUES(?, ?, ?, ?, ?, ?, ?, ?) 
+                    INSERT INTO orders (id, items, table_id, client_id, employee_id, machine_id, created_at, paid_at, total_price, state) 
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
                     ON CONFLICT(id) DO UPDATE SET
-                    client_id = excluded.client_id,
+                    items = excluded.items,  
                     table_id = excluded.table_id,
-                    items = excluded.items,       
+                    client_id = excluded.client_id,
+                    employee_id = excluded.employee_id,
+                    machine_id = excluded.machine_id,
                     paid_at = excluded.paid_at,    
                     total_price = excluded.total_price, 
                     state = excluded.state
                 """,
                 (
                     order.order_id,
-                    order.client_id,
-                    order.table_id,
                     self._serialize_items(order.items),
+                    order.table_id,
+                    order.client_id,
+                    order.employee_id,
+                    order.machine_id,
                     order.created_at,
                     order.paid_at,
                     order.total_price,
