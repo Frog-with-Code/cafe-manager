@@ -3,15 +3,11 @@ from rich.console import Console
 from rich.panel import Panel
 
 
-class ExpectedError(Exception):
+class TableError(Exception):
     pass
 
 
-class TableError(ExpectedError):
-    pass
-
-
-class TableNotFoundError(TabError):
+class TableNotFoundError(TableError):
     pass
 
 
@@ -19,16 +15,9 @@ class TableStateError(TableError):
     pass
 
 
-class TableReservationError(TableError):
-    pass
-
-
 class TableSuitableNotFoundError(TableError):
     pass
 
-
-class TableCleaningError(TableError):
-    pass
 
 class TableBusyError(TableError):
     pass
@@ -38,7 +27,7 @@ class TablePlacesError(TableError):
     pass
 
 
-class ChairError(ExpectedError):
+class ChairError(Exception):
     pass
 
 
@@ -54,15 +43,19 @@ class ChairNotFoundError(ChairError):
     pass
 
 
-class CoffeeMachineStateError(ExpectedError):
+class CoffeeMachineError(Exception):
     pass
 
 
-class CoffeeMachinePipelineError(CoffeeMachineStateError):
+class CoffeeMachineStateError(CoffeeMachineError):
     pass
 
 
-class FinanceError(ExpectedError):
+class CoffeeMachineNotFoundError(CoffeeMachineError):
+    pass
+
+
+class FinanceError(Exception):
     pass
 
 
@@ -78,78 +71,59 @@ class IncorrectMoneyAmountError(FinanceError):
     pass
 
 
-class OrderError(ExpectedError):
+class OrderError(Exception):
     pass
 
 
 class OrderStateError(OrderError):
     pass
 
+
 class OrderNotFoundError(OrderError):
     pass
 
-class OrderModificationError(OrderError):
+
+class EmployeeError(Exception):
     pass
 
 
-class OrderCreationError(OrderError):
+class EmployeeNotFoundError(EmployeeError):
     pass
 
-
-class OrderPaymentError(OrderError):
-    pass
-
-
-class EmployeeError(ExpectedError):
-    pass
 
 class EmployeeNotAssignedError(EmployeeError):
     pass
+
 
 class EmployeeStateError(EmployeeError):
     pass
 
 
-class InventoryError(ExpectedError):
+class InventoryError(Exception):
     pass
+
 
 class InsufficientStocksError(InventoryError):
     pass
 
 
-class ImpossibleUnloading(InventoryError):
+class IngredientError(Exception):
     pass
 
-
-class MenuError(ExpectedError):
-    pass
-
-
-class RecipeError(MenuError):
-    pass
-
-class IngredientError(ExpectedError):
-    pass
 
 class IngredientExistsError(IngredientError):
     pass
 
+
 class IngredientNotFoundError(IngredientError):
     pass
 
-class MenuItemError(MenuError):
+
+class MenuItemError(Exception):
     pass
+
 
 class MenuItemRepeatError(MenuItemError):
-    pass
-
-class CoffeeMachineError(ExpectedError):
-    pass
-
-class CoffeeMachineNotFoundError(CoffeeMachineError):
-    pass
-
-class MenuItemTypeError(MenuItemError):
     pass
 
 
@@ -161,11 +135,7 @@ class MenuItemNotFoundError(MenuItemError):
     pass
 
 
-class KitchenError(ExpectedError):
-    pass
-
-
-class KitchenWorkError(ExpectedError):
+class KitchenError(Exception):
     pass
 
 
@@ -173,19 +143,7 @@ class KitchenOverloadError(KitchenError):
     pass
 
 
-class KitchenReadyError(KitchenError):
-    pass
-
-
-class NotFoundError(ExpectedError):
-    pass
-
-
-class EmployeeNotFoundError(EmployeeError):
-    pass
-
-
-class CafeError(ExpectedError):
+class CafeError(Exception):
     pass
 
 
@@ -221,15 +179,13 @@ class CafeEnvNotFoundError(CafeEnvError):
     pass
 
 
-class CafeInitError(CafeError):
-    pass
-
-
 class CLIBusinessError(ClickException):
     pass
 
-class ClientError(ExpectedError):
+
+class ClientError(Exception):
     pass
+
 
 class ClientNotFoundError(ClientError):
     pass
@@ -254,11 +210,3 @@ class CLIUnexpectedError(Exception):
                 border_style="yellow",
             )
         )
-
-
-class DBError(Exception):
-    pass
-
-
-class RecordNotUpdatedError(DBError):
-    pass
