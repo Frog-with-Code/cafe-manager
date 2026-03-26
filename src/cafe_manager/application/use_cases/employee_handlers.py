@@ -1,9 +1,9 @@
 import random
 
-from cafe_manager.common.exceptions import EmployeeNotFoundError
 from cafe_manager.domain.entities.people import Employee
 from cafe_manager.domain.services.id_generating_service import IDGeneratingService
 from cafe_manager.application.interfaces import EmployeeRepo
+from cafe_manager.common.exceptions import EmployeeNotFoundError
 
 
 class EmployeeHireHandler:

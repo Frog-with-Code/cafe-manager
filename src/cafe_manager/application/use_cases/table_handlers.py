@@ -1,5 +1,16 @@
 from uuid import UUID
 
+from cafe_manager.domain.entities.equipment import Table
+from cafe_manager.domain.entities.finance import Money
+from cafe_manager.domain.services.seating_service import SeatingService
+
+from cafe_manager.application.interfaces import (
+    ChairRepo,
+    FinanceRepo,
+    OrderRepo,
+    TableRepo,
+)
+
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     ChairNotFoundError,
@@ -7,15 +18,6 @@ from cafe_manager.common.exceptions import (
     TableBusyError,
     TableNotFoundError,
     TablePlacesError,
-)
-from cafe_manager.domain.entities.equipment import Table
-from cafe_manager.domain.entities.finance import Money
-from cafe_manager.domain.services.seating_service import SeatingService
-from cafe_manager.application.interfaces import (
-    ChairRepo,
-    FinanceRepo,
-    OrderRepo,
-    TableRepo,
 )
 
 

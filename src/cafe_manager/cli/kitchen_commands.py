@@ -1,32 +1,33 @@
 from re import I
-import typer
 from typing import Annotated
+
+import typer
 from rich.table import Table
+
+from .context import get_env_path, init_context
+from .styles import print_success, print_table
+
+from cafe_manager.domain.services import IngredientCalculator
 
 from cafe_manager.application.use_cases.kitchen_handlers import (
     KitchenListPending,
     KitchenReadyHandler,
     KitchenStartHandler,
 )
-from cafe_manager.cli.context import get_env_path, init_context
-from cafe_manager.cli.styles import print_success, print_table
+
+from cafe_manager.infrastructure.sqlite.repositories import (
+    SQLiteCoffeeMachineRepo,
+    SQLiteInventoryRepo,
+    SQLiteOrderRepo,
+    SQLiteEmployeeRepo,
+)
+
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     EmployeeNotFoundError,
     KitchenOverloadError,
     OrderNotFoundError,
     OrderStateError,
-)
-from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
-from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
-    SQLiteCoffeeMachineRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import (
-    SQLiteInventoryRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.order_repo import SQLiteOrderRepo
-from cafe_manager.infrastructure.sqlite.repositories.people_repo import (
-    SQLiteEmployeeRepo,
 )
 
 app = typer.Typer(callback=init_context)

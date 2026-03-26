@@ -2,12 +2,14 @@ from cafe_manager.domain.entities.equipment import CoffeeMachine
 from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.entities.people import Employee
 from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
+
 from cafe_manager.application.interfaces import (
     CoffeeMachineRepo,
     EmployeeRepo,
     InventoryRepo,
     OrderRepo,
 )
+
 from cafe_manager.common.exceptions import (
     EmployeeNotFoundError,
     KitchenOverloadError,

@@ -1,6 +1,6 @@
-from cafe_manager.domain.entities.finance import Money, Account
-from cafe_manager.domain.entities.order import Order
-from cafe_manager.domain.entities.people import Client
+from ..entities.finance import Money, Account
+from ..entities.order import Order
+from ..entities.people import Client
 
 from cafe_manager.common.exceptions import InsufficientBudgetError
 

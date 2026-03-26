@@ -1,6 +1,8 @@
 import typer
-from cafe_manager.common.exceptions import IncorrectMoneyAmountError
+
 from cafe_manager.domain.entities.finance import Money
+
+from cafe_manager.common.exceptions import IncorrectMoneyAmountError
 
 
 def parse_money(value: str) -> Money:

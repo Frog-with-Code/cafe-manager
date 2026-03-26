@@ -1,7 +1,7 @@
-from cafe_manager.common.exceptions import ClientNotFoundError
 from cafe_manager.domain.entities.people import Client
 from cafe_manager.domain.services.id_generating_service import IDGeneratingService
 from cafe_manager.application.interfaces import ClientRepo
+from cafe_manager.common.exceptions import ClientNotFoundError
 
 
 class ClientCreateHandler:

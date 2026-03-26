@@ -1,7 +1,15 @@
-import typer
-from rich.table import Table as RichTable
 from typing import Annotated
 from uuid import UUID
+
+import typer
+from rich.table import Table as RichTable
+
+from .validation import validate_non_negative
+from .custom_types import Money, parse_money
+from .context import get_env_path, init_context
+from .styles import print_success, print_table
+
+from cafe_manager.domain.services import SeatingService
 
 from cafe_manager.application.use_cases.table_handlers import (
     AssignChairToTableHandler,
@@ -11,8 +19,14 @@ from cafe_manager.application.use_cases.table_handlers import (
     TableInfoHandler,
     TableReserveHandler,
 )
-from cafe_manager.cli.context import get_env_path, init_context
-from cafe_manager.cli.styles import print_success, print_table
+
+from cafe_manager.infrastructure.sqlite.repositories import (
+    SQLiteChairRepo,
+    SQLiteTableRepo,
+    SQLiteFinanceRepo,
+    SQLiteOrderRepo,
+)
+
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     ChairNotFoundError,
@@ -24,18 +38,7 @@ from cafe_manager.common.exceptions import (
     TablePlacesError,
     TableSuitableNotFoundError,
 )
-from cafe_manager.domain.services.seating_service import SeatingService
-from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
-    SQLiteChairRepo,
-    SQLiteTableRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
-    SQLiteFinanceRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.order_repo import SQLiteOrderRepo
 
-from .validation import validate_non_negative
-from .custom_types import Money, parse_money
 
 app = typer.Typer(callback=init_context)
 

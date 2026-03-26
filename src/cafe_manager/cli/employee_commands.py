@@ -1,6 +1,12 @@
-import typer
 from typing import Annotated
+
+import typer
 from rich.table import Table
+
+from .context import get_env_path, init_context
+from .styles import print_info, print_success, print_table
+
+from cafe_manager.domain.services import IDGeneratingService
 
 from cafe_manager.application.use_cases.employee_handlers import (
     EmployeeCreateAtmosphere,
@@ -8,13 +14,11 @@ from cafe_manager.application.use_cases.employee_handlers import (
     EmployeeHireHandler,
     EmployeeInfoHandler,
 )
-from cafe_manager.cli.context import get_env_path, init_context
-from cafe_manager.cli.styles import print_info, print_success, print_table
+
+from cafe_manager.infrastructure.sqlite.repositories import SQLiteEmployeeRepo
+
 from cafe_manager.common.exceptions import CLIBusinessError, EmployeeNotFoundError
-from cafe_manager.domain.services.id_generating_service import IDGeneratingService
-from cafe_manager.infrastructure.sqlite.repositories.people_repo import (
-    SQLiteEmployeeRepo,
-)
+
 
 app = typer.Typer(callback=init_context)
 

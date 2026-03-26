@@ -1,21 +1,24 @@
-import typer
 from typing import Annotated
 
-from cafe_manager.cli.styles import print_info, print_info_important, print_success
+import typer
+
+from .styles import print_info, print_info_important, print_success
+from .custom_types import Money, parse_money
+from .context import get_env_path, init_context, BASE_DIR
+
+from cafe_manager.application.use_cases.cafe_handlers import *
+
+from cafe_manager.infrastructure.sqlite.repositories import (
+    SQLiteFinanceRepo,
+    SQLiteCafeRepo,
+)
+from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
+
 from cafe_manager.common.exceptions import (
     CLIUnexpectedError,
     CLIBusinessError,
     CafeEnvNameError,
 )
-from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
-    SQLiteFinanceRepo,
-)
-
-from .custom_types import Money, parse_money
-from .context import get_env_path, init_context, BASE_DIR
-from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
-from cafe_manager.application.use_cases.cafe_handlers import *
-from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
 
 app = typer.Typer()
 env_manager = EnvironmentManager()

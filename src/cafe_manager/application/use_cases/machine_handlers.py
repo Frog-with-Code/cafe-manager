@@ -1,12 +1,14 @@
 from uuid import UUID
+
+from cafe_manager.domain.entities.equipment import CoffeeMachine
+from cafe_manager.domain.entities.finance import Money
+from cafe_manager.application.interfaces import CoffeeMachineRepo, FinanceRepo
+
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CoffeeMachineNotFoundError,
     InsufficientBudgetError,
 )
-from cafe_manager.domain.entities.equipment import CoffeeMachine
-from cafe_manager.domain.entities.finance import Money
-from cafe_manager.application.interfaces import CoffeeMachineRepo, FinanceRepo
 
 
 class CoffeeMachineBuyHandler:
@@ -59,25 +61,31 @@ class CoffeeMachineInfoHandler:
     def handle(self) -> list[CoffeeMachine]:
         machines = self._machine_repo.get_all()
         return machines if machines else []
-    
+
+
 class CoffeeMachineServiceHandler:
     def __init__(self, machine_repo: CoffeeMachineRepo) -> None:
         self._machine_repo = machine_repo
-        
+
     def handle(self, machine_id: int) -> None:
         machine = self._machine_repo.get_by_id(machine_id)
         if machine is None:
-            raise CoffeeMachineNotFoundError(f"Coffee-machine with ID {machine_id} was not found")
-        
+            raise CoffeeMachineNotFoundError(
+                f"Coffee-machine with ID {machine_id} was not found"
+            )
+
         machine.service()
-        
+
+
 class CoffeeMachineResumeHandler:
     def __init__(self, machine_repo: CoffeeMachineRepo) -> None:
         self._machine_repo = machine_repo
-        
+
     def handle(self, machine_id: int) -> None:
         machine = self._machine_repo.get_by_id(machine_id)
         if machine is None:
-            raise CoffeeMachineNotFoundError(f"Coffee-machine with ID {machine_id} was not found")
-        
+            raise CoffeeMachineNotFoundError(
+                f"Coffee-machine with ID {machine_id} was not found"
+            )
+
         machine.resume()

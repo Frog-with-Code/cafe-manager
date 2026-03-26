@@ -18,8 +18,9 @@ app.add_typer(machine_app, name="machine")
 app.add_typer(cafe_app, name="cafe")
 app.add_typer(finance_app, name="finance")
 app.add_typer(client_app, name="client")
-    
-if __name__ == "__main__":
+
+
+def run_app():
     try:
         app()
     except CLIBusinessError:
@@ -28,3 +29,7 @@ if __name__ == "__main__":
         cli_e = CLIUnexpectedError(str(e))
         cli_e.show()
         sys.exit(cli_e.exit_code)
+
+
+if __name__ == "__main__":
+    run_app()

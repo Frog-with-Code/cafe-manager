@@ -1,0 +1,7 @@
+from cafe_repo import SQLiteCafeRepo
+from equipment_repo import SQLiteTableRepo, SQLiteChairRepo, SQLiteCoffeeMachineRepo
+from finance_repo import SQLiteFinanceRepo
+from inventory_repo import SQLiteInventoryRepo
+from menu_repo import SQLiteMenuRepo
+from order_repo import SQLiteOrderRepo
+from people_repo import SQLiteClientRepo, SQLiteEmployeeRepo

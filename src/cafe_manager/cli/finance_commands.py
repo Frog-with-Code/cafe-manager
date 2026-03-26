@@ -1,8 +1,14 @@
 from datetime import datetime
 from uuid import UUID
-import typer
 from typing import Annotated
+
+import typer
 from rich.table import Table
+
+from .context import get_env_path, init_context
+from .custom_types import parse_money, Money
+from .styles import print_info, print_success, print_table
+from .validation import validate_non_negative
 
 from cafe_manager.application.use_cases.finance_handlers import (
     FinanceHistoryHandler,
@@ -10,14 +16,11 @@ from cafe_manager.application.use_cases.finance_handlers import (
     FinanceSetPrimaryHandler,
     FinanceStatsHandler,
 )
-from cafe_manager.cli.context import get_env_path, init_context
-from cafe_manager.cli.custom_types import parse_money, Money
-from cafe_manager.cli.styles import print_info, print_success, print_table
-from cafe_manager.cli.validation import validate_non_negative
+
+from cafe_manager.infrastructure.sqlite.repositories import SQLiteFinanceRepo
+
 from cafe_manager.common.exceptions import AccountNotFoundError, CLIBusinessError
-from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
-    SQLiteFinanceRepo,
-)
+
 
 app = typer.Typer(callback=init_context)
 
@@ -94,9 +97,7 @@ def stats(
         print_info(f"{'Expense:':<{w}} {stats['expense']}")
 
         sign = "-" if stats["is_loss"] else "+"
-        print_info(
-            f"{'Profit:':<{w}} {sign}{stats['profit_abs']}"
-        )
+        print_info(f"{'Profit:':<{w}} {sign}{stats['profit_abs']}")
     except AccountNotFoundError as e:
         raise CLIBusinessError(str(e))
 

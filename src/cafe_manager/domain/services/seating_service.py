@@ -1,8 +1,9 @@
+from ..entities.equipment import Table, Chair
+
 from cafe_manager.common.exceptions import (
     ChairShortageError,
     TableSuitableNotFoundError,
 )
-from cafe_manager.domain.entities.equipment import Table, Chair
 
 
 class SeatingService:

@@ -1,16 +1,21 @@
-import typer
 from typing import Annotated
+
+import typer
 from rich.console import Console
+
+from .context import get_env_path, init_context
+from .styles import print_info, print_success
+
+from cafe_manager.domain.services import IDGeneratingService
 
 from cafe_manager.application.use_cases.client_handlers import (
     ClientCreateHandler,
     ClientInfoHandler,
 )
-from cafe_manager.cli.context import get_env_path, init_context
-from cafe_manager.cli.styles import print_info, print_success
+
+from cafe_manager.infrastructure.sqlite.repositories import SQLiteClientRepo
+
 from cafe_manager.common.exceptions import CLIBusinessError, ClientNotFoundError
-from cafe_manager.domain.services.id_generating_service import IDGeneratingService
-from cafe_manager.infrastructure.sqlite.repositories.people_repo import SQLiteClientRepo
 
 
 app = typer.Typer(callback=init_context)
@@ -50,7 +55,7 @@ def info(
 
     try:
         client = handler.handle(client_id)
-        
+
         w = 20
         print_info(f"{'ID:':<{w}} {client.client_id}")
         print_info(f"{'Name:':<{w}} {client.name}")
@@ -59,6 +64,3 @@ def info(
         print_info(f"{'Registered at:':<{w}} {client.registered_at}")
     except ClientNotFoundError as e:
         raise CLIBusinessError(str(e))
-
-    
-    

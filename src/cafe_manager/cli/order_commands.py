@@ -1,7 +1,19 @@
 from uuid import UUID
-import typer
 from typing import Annotated
+
+import typer
 from rich.table import Table
+
+from .styles import print_success, print_table
+from .validation import validate_item_format, validate_non_negative
+from .custom_types import Money, parse_money
+from .context import get_env_path, init_context
+
+from cafe_manager.domain.services import (
+    IngredientCalculator,
+    IDGeneratingService,
+    PaymentService,
+)
 
 from cafe_manager.application.use_cases.order_handlers import (
     OrderCreateHandler,
@@ -9,7 +21,20 @@ from cafe_manager.application.use_cases.order_handlers import (
     OrderPayHandler,
     OrderServeHandler,
 )
-from cafe_manager.cli.styles import print_success, print_table
+
+
+from cafe_manager.infrastructure.sqlite.repositories import (
+    SQLiteChairRepo,
+    SQLiteCoffeeMachineRepo,
+    SQLiteTableRepo,
+    SQLiteFinanceRepo,
+    SQLiteInventoryRepo,
+    SQLiteMenuRepo,
+    SQLiteOrderRepo,
+    SQLiteClientRepo,
+    SQLiteEmployeeRepo,
+)
+
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -24,30 +49,7 @@ from cafe_manager.common.exceptions import (
     TableNotFoundError,
     TableStateError,
 )
-from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
-from cafe_manager.domain.services.id_generating_service import IDGeneratingService
-from cafe_manager.domain.services.payment_service import PaymentService
-from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
-    SQLiteChairRepo,
-    SQLiteCoffeeMachineRepo,
-    SQLiteTableRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
-    SQLiteFinanceRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import (
-    SQLiteInventoryRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.menu_repo import SQLiteMenuRepo
-from cafe_manager.infrastructure.sqlite.repositories.order_repo import SQLiteOrderRepo
-from cafe_manager.infrastructure.sqlite.repositories.people_repo import (
-    SQLiteClientRepo,
-    SQLiteEmployeeRepo,
-)
 
-from .validation import validate_item_format, validate_non_negative
-from .custom_types import Money, parse_money
-from .context import get_env_path, init_context
 
 app = typer.Typer(callback=init_context)
 

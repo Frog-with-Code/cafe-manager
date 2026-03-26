@@ -1,27 +1,31 @@
-import typer
 from typing import Annotated
+
+import typer
 from rich.table import Table
+
+from .context import get_env_path, init_context
+from .styles import print_error, print_success, print_table
+from .validation import validate_non_negative
+from .custom_types import Money, parse_money
+
+from cafe_manager.domain.entities.menu import MenuItemCategory
 
 from cafe_manager.application.use_cases.menu_handlers import (
     MenuAddItemHandler,
     MenuInfoHandler,
     MenuItemRemoveHandler,
 )
-from cafe_manager.cli.context import get_env_path, init_context
-from cafe_manager.cli.styles import print_error, print_success, print_table
+
+from cafe_manager.infrastructure.sqlite.repositories import (
+    SQLiteInventoryRepo,
+    SQLiteMenuRepo,
+)
+
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     MenuItemExistsError,
     MenuItemNotFoundError,
 )
-from cafe_manager.domain.entities.menu import MenuItemCategory
-from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import (
-    SQLiteInventoryRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.menu_repo import SQLiteMenuRepo
-
-from .validation import validate_non_negative
-from .custom_types import Money, parse_money
 
 
 app = typer.Typer(callback=init_context)

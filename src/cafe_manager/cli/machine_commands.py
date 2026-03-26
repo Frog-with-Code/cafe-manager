@@ -1,7 +1,13 @@
 from uuid import UUID
-import typer
 from typing import Annotated
+
+import typer
 from rich.table import Table
+
+from .context import get_env_path, init_context
+from .styles import print_success, print_table
+from .validation import validate_non_negative
+from .custom_types import Money, parse_money
 
 from cafe_manager.application.use_cases.machine_handlers import (
     CoffeeMachineBuyHandler,
@@ -10,8 +16,12 @@ from cafe_manager.application.use_cases.machine_handlers import (
     CoffeeMachineResumeHandler,
     CoffeeMachineServiceHandler,
 )
-from cafe_manager.cli.context import get_env_path, init_context
-from cafe_manager.cli.styles import print_success, print_table
+
+from cafe_manager.infrastructure.sqlite.repositories import (
+    SQLiteCoffeeMachineRepo,
+    SQLiteFinanceRepo,
+)
+
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -19,15 +29,7 @@ from cafe_manager.common.exceptions import (
     CoffeeMachineStateError,
     InsufficientBudgetError,
 )
-from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
-    SQLiteCoffeeMachineRepo,
-)
-from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
-    SQLiteFinanceRepo,
-)
 
-from .validation import validate_non_negative
-from .custom_types import Money, parse_money
 
 app = typer.Typer(callback=init_context)
 
