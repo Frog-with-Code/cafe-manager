@@ -22,4 +22,4 @@ def print_info_important(message: str) -> None:
 
 
 def print_table(table: Table) -> None:
-    console.print(f"[white]{table}[/white]")
+    console.print(table)

@@ -109,6 +109,6 @@ def create_atmosphere(
 
     try:
         joke = handler.handle()
-        print_info("Employee tells a joke:\n{joke}")
+        print_info(f"Employee tells a joke:\n{joke}")
     except EmployeeNotFoundError as e:
         raise CLIBusinessError(str(e))
