@@ -1,7 +1,6 @@
 import typer
 from typing import Annotated
 from uuid import UUID
-from rich.console import Console
 from rich.table import Table as RichTable
 
 from cafe_manager.application.use_cases.chair_handlers import (
@@ -10,6 +9,7 @@ from cafe_manager.application.use_cases.chair_handlers import (
     ChairInfoHandler,
 )
 from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.cli.styles import print_success, print_table
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -28,7 +28,6 @@ from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
 
-console = Console()
 app = typer.Typer(callback=init_context)
 
 
@@ -63,7 +62,7 @@ def buy(
 
     try:
         handler.handle(price, account_id)
-        console.print("[bold blue]New chair was bought[/bold blue]")
+        print_success("New chair was bought")
     except (AccountNotFoundError, InsufficientBudgetError) as e:
         raise CLIBusinessError(str(e))
 
@@ -88,7 +87,7 @@ def discard(
 
     try:
         handler.handle(chair_id)
-        console.print(f"[bold blue]Chair with ID {chair_id} was discarded[/bold blue]")
+        print_success(f"Chair with ID {chair_id} was discarded")
     except (ChairNotFoundError, TableNotFoundError) as e:
         raise CLIBusinessError(str(e))
 
@@ -123,4 +122,4 @@ def info(
         rich_table.add_row(*str_params)
 
     if rich_table.row_count > 0:
-        console.print(rich_table)
+        print_table(rich_table)

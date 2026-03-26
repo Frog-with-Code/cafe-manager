@@ -1,7 +1,6 @@
 from uuid import UUID
 import typer
 from typing import Annotated
-from rich.console import Console
 from rich.table import Table
 
 from cafe_manager.application.use_cases.inventory_handlers import (
@@ -12,6 +11,7 @@ from cafe_manager.application.use_cases.inventory_handlers import (
 )
 from cafe_manager.cli.context import get_env_path, init_context
 from cafe_manager.cli.custom_types import parse_money, Money
+from cafe_manager.cli.styles import print_success, print_table
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -27,7 +27,6 @@ from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import (
     SQLiteInventoryRepo,
 )
 
-console = Console()
 app = typer.Typer(callback=init_context)
 
 
@@ -50,7 +49,8 @@ def add_ingredient(
 
     try:
         handler.handle(name, unit, overwrite)
-        console.print(f"[bold blue]'{name}' was added to the inventory[/bold blue]")
+
+        print_success(f"'{name}' was added to the inventory")
     except IngredientExistsError as e:
         raise CLIBusinessError(str(e))
 
@@ -67,7 +67,8 @@ def remove_ingredient(
 
     try:
         handler.handle(name)
-        console.print(f"[bold blue]'{name}' was removed from the inventory[/bold blue]")
+
+        print_success(f"'{name}' was removed from the inventory")
     except IngredientNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -102,7 +103,7 @@ def info(
         table.add_row(*str_params)
 
     if table.row_count > 0:
-        console.print(table)
+        print_table(table)
 
 
 @app.command()
@@ -149,9 +150,7 @@ def supply(
 
     try:
         handler.handle(name=name, amount=quantity, price=price, account_id=account_id)
-        console.print(
-            f"[bold blue]Inventory was supplied by '{name}' in amount of {quantity}[/bold blue]"
-        )
+        print_success(f"Inventory was supplied by '{name}' in amount of {quantity}")
     except (
         AccountNotFoundError,
         IngredientNotFoundError,

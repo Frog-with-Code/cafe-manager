@@ -1,7 +1,7 @@
 import typer
 from typing import Annotated
-from rich.console import Console
 
+from cafe_manager.cli.styles import print_info, print_info_important, print_success
 from cafe_manager.common.exceptions import (
     CLIUnexpectedError,
     CLIBusinessError,
@@ -18,24 +18,20 @@ from cafe_manager.application.use_cases.cafe_handlers import *
 from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
 
 app = typer.Typer()
-console = Console()
 env_manager = EnvironmentManager()
 
 
 @app.command()
 def create(
-    name: Annotated[
-        str, typer.Option("--name", "-n", help="Name of the new cafe environment")
-    ],
+    name: Annotated[str, typer.Argument(help="Name of the new cafe environment")],
 ):
     """Create new cafe environment"""
 
     try:
         handler = CafeCreateHandler(BASE_DIR, env_manager)
         handler.handle(name)
-        console.print(
-            f"[bold blue]New cafe environment with name {name} was created[/bold blue]"
-        )
+
+        print_success("New cafe environment with name '{name}' was created")
     except (CafeEnvExistsError, CafeEnvNameError) as e:
         raise CLIBusinessError(str(e))
     except Exception as e:
@@ -46,9 +42,7 @@ def create(
 def remove(
     name: Annotated[
         str,
-        typer.Option(
-            "--name",
-            "-n",
+        typer.Argument(
             help="Name of the cafe",
         ),
     ],
@@ -67,26 +61,22 @@ def remove(
         if force:
             handler = CafeRemoveHandler(BASE_DIR, env_manager, BASE_DIR)
             handler.handle(name)
-            console.print(
-                f"[bold blue]Cafe environment with name {name} was deleted[/bold blue]"
-            )
+
+            print_success(f"Cafe environment with name '{name}' was deleted")
     except CafeEnvNotFoundError as e:
         raise CLIBusinessError(str(e))
 
 
 @app.command()
 def activate(
-    name: Annotated[
-        str, typer.Option("--name", "-n", help="Name of the cafe environment")
-    ],
+    name: Annotated[str, typer.Argument(help="Name of the cafe environment")],
 ):
     """Activate cafe environment"""
     try:
         handler = CafeActivateHandler(BASE_DIR, env_manager, BASE_DIR)
         handler.handle(name)
-        console.print(
-            f"[bold blue]Cafe environment with name {name} was activated[/bold blue]"
-        )
+
+        print_success(f"Cafe environment with name '{name}' was activated")
     except CafeEnvNoActiveError as e:
         raise CLIBusinessError(str(e))
 
@@ -97,8 +87,9 @@ def deactivate():
     try:
         handler = CafeDeactivateHandler(BASE_DIR, env_manager, BASE_DIR)
         handler.handle()
-        console.print(f"[bold blue]Cafe environment was deactivated[/bold blue]")
-    except CafeEnvNoActiveError as e:
+
+        print_success("Cafe environment was deactivated")
+    except CafeEnvNoActiveError:
         pass
 
 
@@ -126,7 +117,7 @@ def init(
     try:
         handler.handle(name, address, capital)
 
-        console.print("[bold blue]Environment was initialized[/bold blue]")
+        print_success("Environment was initialized")
     except CafeEnvAlreadyInitError as e:
         raise CLIBusinessError(str(e))
 
@@ -134,13 +125,8 @@ def init(
 @app.command(name="list")
 def env_list(ctx: typer.Context) -> None:
     """Show list of cafe environments"""
-    init_context(ctx)
-    active_env = get_env_path(ctx)
+    active_env = env_manager.get_active_env_path(BASE_DIR)
 
     for env in BASE_DIR.glob("*.db"):
-        l_border, r_border = (
-            ("[bold blue]", "[/bold blue]")
-            if env == active_env
-            else ("[dim blue]", "[/dim blue]")
-        )
-        console.print(f"{l_border}{env.stem:<30} {env.resolve()}{r_border}")
+        message = f"{env.stem:<30} {env.resolve()}"
+        print_info_important(message) if env == active_env else print_info(message)

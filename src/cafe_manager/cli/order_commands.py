@@ -1,7 +1,6 @@
 from uuid import UUID
 import typer
 from typing import Annotated
-from rich.console import Console
 from rich.table import Table
 
 from cafe_manager.application.use_cases.order_handlers import (
@@ -10,6 +9,7 @@ from cafe_manager.application.use_cases.order_handlers import (
     OrderPayHandler,
     OrderServeHandler,
 )
+from cafe_manager.cli.styles import print_success, print_table
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -50,7 +50,6 @@ from .custom_types import Money, parse_money
 from .context import get_env_path, init_context
 
 app = typer.Typer(callback=init_context)
-console = Console()
 
 
 @app.command()
@@ -101,9 +100,8 @@ def create(
 
     try:
         order_id = handler.handle(items, table_id, continue_session)  # type: ignore
-        console.print(
-            f"[bold blue]New order with ID {order_id} was created[/bold blue]"
-        )
+
+        print_success(f"New order with ID {order_id} was created")
     except (
         TableNotFoundError,
         TableStateError,
@@ -167,7 +165,8 @@ def pay(
             account_id=account_id,
             client_id=client_id,
         )
-        console.print("[bold blue]Order was paid[/bold blue]")
+
+        print_success("Order was paid")
     except (
         OrderNotFoundError,
         OrderStateError,
@@ -218,7 +217,7 @@ def info(
         table.add_row(*str_params)
 
     if table.row_count > 0:
-        console.print(table)
+        print_table(table)
 
 
 @app.command()
@@ -235,6 +234,7 @@ def serve(
 
     try:
         handler.handle(order_id)
-        console.print("[bold blue]Order was served[/bold blue]")
+
+        print_success("Order was served")
     except (OrderNotFoundError, OrderStateError) as e:
         raise CLIBusinessError(str(e))

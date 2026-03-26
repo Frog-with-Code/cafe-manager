@@ -2,7 +2,6 @@ from re import I
 import typer
 from typing import Annotated
 from rich.table import Table
-from rich.console import Console
 
 from cafe_manager.application.use_cases.kitchen_handlers import (
     KitchenListPending,
@@ -10,6 +9,7 @@ from cafe_manager.application.use_cases.kitchen_handlers import (
     KitchenStartHandler,
 )
 from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.cli.styles import print_success, print_table
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     EmployeeNotFoundError,
@@ -29,7 +29,6 @@ from cafe_manager.infrastructure.sqlite.repositories.people_repo import (
     SQLiteEmployeeRepo,
 )
 
-console = Console()
 app = typer.Typer(callback=init_context)
 
 
@@ -46,7 +45,7 @@ def show_list_pending(
     handler = KitchenListPending(order_repo)
 
     orders = handler.handle()
-    
+
     table = Table(title="pending orders")
     table.add_column("", min_width=7)
     table.add_column("id", min_width=10)
@@ -73,7 +72,7 @@ def show_list_pending(
         table.add_row(*str_params)
 
     if table.row_count > 0:
-        console.print(table)
+        print_table(table)
 
 
 @app.command()
@@ -102,15 +101,15 @@ def start(
     try:
         order_id, employee_id, machine_id = handler.handle(employee_id)
         if order_id is None:
-            console.print("[bold blue]No paid orders[/bold blue]")
+            print_success("No paid orders")
         else:
             w = 5
             machine_text = f"{'Machine:':{w}} {machine_id}" if machine_id else ""
-            console.print(
-                f"""[bold blue]Order with ID {order_id} was handed over for cooking 
+            print_success(
+                f"""Order with ID {order_id} was handed over for cooking 
                 {'Employee:':<{w}} {employee_id} 
                 {machine_text}
-                [/bold blue]"""
+                """
             )
     except (EmployeeNotFoundError, KitchenOverloadError) as e:
         raise CLIBusinessError(str(e))

@@ -1,7 +1,6 @@
 from uuid import UUID
 import typer
 from typing import Annotated
-from rich.console import Console
 from rich.table import Table
 
 from cafe_manager.application.use_cases.machine_handlers import (
@@ -12,6 +11,7 @@ from cafe_manager.application.use_cases.machine_handlers import (
     CoffeeMachineServiceHandler,
 )
 from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.cli.styles import print_success, print_table
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -29,7 +29,6 @@ from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
 
-console = Console()
 app = typer.Typer(callback=init_context)
 
 
@@ -77,9 +76,8 @@ def buy(
 
     try:
         handler.handle(price=price, model=model, limit=limit, account_id=account_id)
-        console.print(
-            f"[bold blue]Coffee-machine of model '{model}' was bought[/bold blue]"
-        )
+
+        print_success(f"Coffee-machine of model '{model}' was bought")
     except (AccountNotFoundError, InsufficientBudgetError) as e:
         raise CLIBusinessError(str(e))
 
@@ -112,9 +110,8 @@ def discard(
 
     try:
         handler.handle(machine_id)
-        console.print(
-            f"[bold blue]Coffee-machine with ID {machine_id} was discarded[/bold blue]"
-        )
+
+        print_success(f"Coffee-machine with ID {machine_id} was discarded")
     except CoffeeMachineNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -158,7 +155,7 @@ def info(
         table.add_row(*str_params)
 
     if table.row_count > 0:
-        console.print(table)
+        print_table(table)
 
 
 @app.command()
@@ -180,9 +177,8 @@ def service(
 
     try:
         handler.handle(machine_id)
-        console.print(
-            f"[bold blue]Coffee-machine with ID {machine_id} was given for maintenance[/bold blue]"
-        )
+
+        print_success(f"Coffee-machine with ID {machine_id} was given for maintenance")
     except (CoffeeMachineNotFoundError, CoffeeMachineStateError) as e:
         raise CLIBusinessError(str(e))
 
@@ -206,8 +202,7 @@ def resume(
 
     try:
         handler.handle(machine_id)
-        console.print(
-            f"[bold blue]Coffee-machine with ID {machine_id} was taken from maintenance[/bold blue]"
-        )
+
+        print_success(f"Coffee-machine with ID {machine_id} was taken from maintenance")
     except (CoffeeMachineNotFoundError, CoffeeMachineStateError) as e:
         raise CLIBusinessError(str(e))

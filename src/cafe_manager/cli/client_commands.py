@@ -7,6 +7,7 @@ from cafe_manager.application.use_cases.client_handlers import (
     ClientInfoHandler,
 )
 from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.cli.styles import print_info, print_success
 from cafe_manager.common.exceptions import CLIBusinessError, ClientNotFoundError
 from cafe_manager.domain.services.id_generating_service import IDGeneratingService
 from cafe_manager.infrastructure.sqlite.repositories.people_repo import SQLiteClientRepo
@@ -29,7 +30,7 @@ def create(
 
     try:
         client_id = handler.handle(name)
-        console.print(f"[bold blue]New client with ID '{client_id}' was created[/bold blue]")
+        print_success(f"New client with ID '{client_id}' was created")
     except RuntimeError as e:
         raise CLIBusinessError(str(e))
 
@@ -51,11 +52,11 @@ def info(
         client = handler.handle(client_id)
         
         w = 20
-        console.print(f"[bold blue]{'ID:':<{w}} {client.client_id}[/bold blue]")
-        console.print(f"[bold blue]{'Name:':<{w}} {client.name}[/bold blue]")
-        console.print(f"[bold blue]{'Total spent:':<{w}} {client.total_spent}[/bold blue]")
-        console.print(f"[bold blue]{'Orders amount:':<{w}} {client.orders_amount}[/bold blue]")
-        console.print(f"[bold blue]{'Registered at:':<{w}} {client.registered_at}[/bold blue]")
+        print_info(f"{'ID:':<{w}} {client.client_id}")
+        print_info(f"{'Name:':<{w}} {client.name}")
+        print_info(f"{'Total spent:':<{w}} {client.total_spent}")
+        print_info(f"{'Orders amount:':<{w}} {client.orders_amount}")
+        print_info(f"{'Registered at:':<{w}} {client.registered_at}")
     except ClientNotFoundError as e:
         raise CLIBusinessError(str(e))
 

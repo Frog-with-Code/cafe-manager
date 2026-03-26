@@ -1,6 +1,5 @@
 import typer
 from typing import Annotated
-from rich.console import Console
 from rich.table import Table
 
 from cafe_manager.application.use_cases.employee_handlers import (
@@ -10,13 +9,13 @@ from cafe_manager.application.use_cases.employee_handlers import (
     EmployeeInfoHandler,
 )
 from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.cli.styles import print_info, print_success, print_table
 from cafe_manager.common.exceptions import CLIBusinessError, EmployeeNotFoundError
 from cafe_manager.domain.services.id_generating_service import IDGeneratingService
 from cafe_manager.infrastructure.sqlite.repositories.people_repo import (
     SQLiteEmployeeRepo,
 )
 
-console = Console()
 app = typer.Typer(callback=init_context)
 
 
@@ -35,9 +34,8 @@ def hire(
 
     try:
         employee_id = handler.handle(name)
-        console.print(
-            f"[bold blue]Employee was hired with ID {employee_id}[/bold blue]"
-        )
+
+        print_success(f"Employee was hired with ID {employee_id}")
     except RuntimeError as e:
         raise CLIBusinessError(str(e))
 
@@ -57,7 +55,8 @@ def fire(
 
     try:
         handler.handle(employee_id)
-        console.print(f"[bold blue]Employee was fired[/bold blue]")
+
+        print_success(f"Employee was fired")
     except EmployeeNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -92,7 +91,7 @@ def info(
         table.add_row(*str_params)
 
     if table.row_count > 0:
-        console.print(table)
+        print_table(table)
 
 
 @app.command("create-atmosphere")
@@ -106,6 +105,6 @@ def create_atmosphere(
 
     try:
         joke = handler.handle()
-        console.print(f"[bold blue]Employee tells a joke:\n{joke}[/bold blue]")
+        print_info("Employee tells a joke:\n{joke}")
     except EmployeeNotFoundError as e:
         raise CLIBusinessError(str(e))

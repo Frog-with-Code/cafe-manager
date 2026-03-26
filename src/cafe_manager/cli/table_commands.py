@@ -1,5 +1,4 @@
 import typer
-from rich.console import Console
 from rich.table import Table as RichTable
 from typing import Annotated
 from uuid import UUID
@@ -13,6 +12,7 @@ from cafe_manager.application.use_cases.table_handlers import (
     TableReserveHandler,
 )
 from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.cli.styles import print_success, print_table
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     ChairNotFoundError,
@@ -37,7 +37,6 @@ from cafe_manager.infrastructure.sqlite.repositories.order_repo import SQLiteOrd
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
 
-console = Console()
 app = typer.Typer(callback=init_context)
 
 
@@ -81,7 +80,8 @@ def buy(
 
     try:
         handler.handle(price=price, seats=seats, account_id=account_id)
-        console.print(f"[bold blue]New {seats}-seats table was bought[/bold blue]")
+
+        print_success(f"New {seats}-seats table was bought")
     except (AccountNotFoundError, InsufficientBudgetError) as e:
         raise CLIBusinessError(str(e))
 
@@ -115,7 +115,8 @@ def discard(
 
     try:
         handler.handle(table_id)
-        console.print(f"[bold blue]Table '{table_id}' was discarded[/bold blue]")
+
+        print_success(f"Table '{table_id}' was discarded")
     except TableNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -151,7 +152,7 @@ def info(
         rich_table.add_row(*str_params)
 
     if rich_table.row_count > 0:
-        console.print(rich_table)
+        print_table(rich_table)
 
 
 @app.command()
@@ -173,7 +174,8 @@ def reserve(
 
     try:
         table_id = handler.handle(seats)
-        console.print(f"[bold blue]Table with ID {table_id} was reserved[/bold blue]")
+
+        print_success(f"Table with ID {table_id} was reserved")
     except (
         TableNotFoundError,
         ChairNotFoundError,
@@ -199,7 +201,8 @@ def free(
 
     try:
         handler.handle(table_id)
-        console.print(f"[bold blue]Table with ID {table_id} was freed[/bold blue]")
+
+        print_success(f"Table with ID {table_id} was freed")
     except (TableNotFoundError, TableBusyError) as e:
         raise CLIBusinessError(str(e))
 
@@ -222,8 +225,7 @@ def assign_chair(
 
     try:
         handler.handle(table_id=table_id, chair_id=chair_id)
-        console.print(
-            f"[bold blue]Chair {chair_id} was assigned to table {table_id}[/bold blue]"
-        )
+
+        print_success(f"Chair {chair_id} was assigned to table {table_id}")
     except (TableNotFoundError, ChairNotFoundError, TablePlacesError) as e:
         raise CLIBusinessError(str(e))

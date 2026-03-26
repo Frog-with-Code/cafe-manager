@@ -2,7 +2,6 @@ from datetime import datetime
 from uuid import UUID
 import typer
 from typing import Annotated
-from rich.console import Console
 from rich.table import Table
 
 from cafe_manager.application.use_cases.finance_handlers import (
@@ -13,13 +12,13 @@ from cafe_manager.application.use_cases.finance_handlers import (
 )
 from cafe_manager.cli.context import get_env_path, init_context
 from cafe_manager.cli.custom_types import parse_money, Money
+from cafe_manager.cli.styles import print_info, print_success, print_table
 from cafe_manager.cli.validation import validate_non_negative
 from cafe_manager.common.exceptions import AccountNotFoundError, CLIBusinessError
 from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
     SQLiteFinanceRepo,
 )
 
-console = Console()
 app = typer.Typer(callback=init_context)
 
 
@@ -56,6 +55,7 @@ def invest(
 
     try:
         handler.handle(money, account_id, description)
+        print_success("Money were invested to the account")
     except AccountNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -88,14 +88,14 @@ def stats(
         stats = handler.handle(account_id=account_id, start_date=start, end_date=end)
 
         w = 10
-        console.print(f"[bold blue]{'ID:':<{w}} {stats['id']}[/bold blue]")
-        console.print(f"[bold blue]{'Balance:':<{w}} {stats['balance']}[/bold blue]")
-        console.print(f"[bold blue]{'Income:':<{w}} {stats['income']}[/bold blue]")
-        console.print(f"[bold blue]{'Expense:':<{w}} {stats['expense']}[/bold blue]")
+        print_info(f"{'ID:':<{w}} {stats['id']}")
+        print_info(f"{'Balance:':<{w}} {stats['balance']}")
+        print_info(f"{'Income:':<{w}} {stats['income']}")
+        print_info(f"{'Expense:':<{w}} {stats['expense']}")
 
         sign = "-" if stats["is_loss"] else "+"
-        console.print(
-            f"[bold blue]{'Profit:':<{w}} {sign}{stats['profit_abs']}[/bold blue]"
+        print_info(
+            f"{'Profit:':<{w}} {sign}{stats['profit_abs']}"
         )
     except AccountNotFoundError as e:
         raise CLIBusinessError(str(e))
@@ -160,7 +160,7 @@ def history(
         table.add_row(*str_params)
 
     if table.row_count > 0:
-        console.print(table)
+        print_table(table)
 
 
 @app.command("set-primary")
@@ -180,5 +180,6 @@ def set_primary(
 
     try:
         handler.handle(account_id)
+        print_success(f"Account was set as primary")
     except AccountNotFoundError as e:
         raise CLIBusinessError(str(e))

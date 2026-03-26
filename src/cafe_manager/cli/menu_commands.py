@@ -1,7 +1,6 @@
 import typer
 from typing import Annotated
 from rich.table import Table
-from rich.console import Console
 
 from cafe_manager.application.use_cases.menu_handlers import (
     MenuAddItemHandler,
@@ -9,6 +8,7 @@ from cafe_manager.application.use_cases.menu_handlers import (
     MenuItemRemoveHandler,
 )
 from cafe_manager.cli.context import get_env_path, init_context
+from cafe_manager.cli.styles import print_error, print_success, print_table
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     MenuItemExistsError,
@@ -19,13 +19,11 @@ from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import (
     SQLiteInventoryRepo,
 )
 from cafe_manager.infrastructure.sqlite.repositories.menu_repo import SQLiteMenuRepo
-from cafe_manager.domain.entities.menu import Unit
 
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
 
-console = Console()
-err_console = Console(stderr=True)
+
 app = typer.Typer(callback=init_context)
 
 
@@ -59,7 +57,7 @@ def info(
 
             table.add_row(*params)
 
-        console.print(table)
+        print_table(table)
 
 
 @app.command("add-item")
@@ -95,16 +93,14 @@ def add_item(
             break
 
         if ingredients.get(ing_name, None) is not None:
-            err_console.print(
-                "[bold red]Don't enter the same ingredients several times[/bold red]"
-            )
+            print_error("Don't enter the same ingredients several times")
             continue
 
         ing_amount = typer.prompt("Enter amount of the ingredient", type=float)
         try:
             validate_non_negative(ing_amount)
         except typer.BadParameter:
-            err_console.print("[bold red]Ingredient amount must be positive[/bold red]")
+            print_error("Ingredient amount must be positive")
             continue
 
         ingredients[ing_name] = ing_amount
@@ -125,7 +121,8 @@ def add_item(
             ingredients_data=ingredients,
             overwrite=overwrite,
         )
-        console.print(f"[bold blue]{name} was added to the menu[/bold blue]")
+
+        print_success(f"{name} was added to the menu")
     except MenuItemExistsError as e:
         raise CLIBusinessError(str(e))
 
@@ -145,6 +142,7 @@ def remove_item(
 
     try:
         handler.handle(name)
-        console.print(f"[bold blue]{name} was removed from the menu[/bold blue]")
+
+        print_success(f"{name} was removed from the menu")
     except MenuItemNotFoundError as e:
         raise CLIBusinessError(str(e))
