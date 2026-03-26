@@ -12,7 +12,7 @@ from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
 )
 
 from .custom_types import Money, parse_money
-from .context import init_context, BASE_DIR
+from .context import get_env_path, init_context, BASE_DIR
 from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
 from cafe_manager.application.use_cases.cafe_handlers import *
 from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
@@ -118,13 +118,12 @@ def init(
 ):
     """Initialize new cafe environment. Set metadata of the cafe and create its financial account"""
     init_context(ctx)
+    env_path = get_env_path(ctx)
 
+    cafe_repo = SQLiteCafeRepo(env_path)
+    finance_repo = SQLiteFinanceRepo(env_path)
+    handler = CafeInitHandler(cafe_repo, finance_repo)
     try:
-        env = ctx.obj["active_env"]
-        cafe_repo = SQLiteCafeRepo(env)
-        finance_repo = SQLiteFinanceRepo(env)
-
-        handler = CafeInitHandler(cafe_repo, finance_repo)
         handler.handle(name, address, capital)
 
         console.print("[bold blue]Environment was initialized[/bold blue]")
@@ -133,9 +132,10 @@ def init(
 
 
 @app.command(name="list")
-def env_list() -> None:
+def env_list(ctx: typer.Context) -> None:
     """Show list of cafe environments"""
-    active_env = env_manager.get_active_env_path(BASE_DIR)
+    init_context(ctx)
+    active_env = get_env_path(ctx)
 
     for env in BASE_DIR.glob("*.db"):
         l_border, r_border = (
