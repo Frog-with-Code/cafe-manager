@@ -59,7 +59,7 @@ def buy(
             callback=validate_non_negative,
         ),
     ] = 1000,
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
@@ -76,7 +76,7 @@ def buy(
     handler = CoffeeMachineBuyHandler(finance_repo, machine_repo)
 
     try:
-        handler.handle(price=price, model=model, limit=limit, account_id=account)
+        handler.handle(price=price, model=model, limit=limit, account_id=account_id)
         console.print(
             f"[bold blue]Coffee-machine of model '{model}' was bought[/bold blue]"
         )
@@ -87,13 +87,11 @@ def buy(
 @app.command()
 def discard(
     ctx: typer.Context,
-    machine: Annotated[
+    machine_id: Annotated[
         int,
         typer.Option(
-            "--machine",
-            "-m",
-            "--machine-id",
-            help="Id of the coffee-machine",
+            "--id",
+            help="ID of the coffee-machine",
             callback=validate_non_negative,
         ),
     ],
@@ -113,9 +111,9 @@ def discard(
     handler = CoffeeMachineDiscardHandler(machine_repo)
 
     try:
-        handler.handle(machine)
+        handler.handle(machine_id)
         console.print(
-            f"[bold blue]Coffee-machine with ID {machine} was discarded[/bold blue]"
+            f"[bold blue]Coffee-machine with ID {machine_id} was discarded[/bold blue]"
         )
     except CoffeeMachineNotFoundError as e:
         raise CLIBusinessError(str(e))
@@ -166,13 +164,11 @@ def info(
 @app.command()
 def service(
     ctx: typer.Context,
-    machine: Annotated[
+    machine_id: Annotated[
         int,
         typer.Option(
-            "--machine",
-            "-m",
-            "--machine-id",
-            help="Id of the coffee-machine",
+            "--id",
+            help="ID of the coffee-machine",
             callback=validate_non_negative,
         ),
     ],
@@ -183,9 +179,9 @@ def service(
     handler = CoffeeMachineServiceHandler(machine_repo)
 
     try:
-        handler.handle(machine)
+        handler.handle(machine_id)
         console.print(
-            f"[bold blue]Coffee-machine with ID {machine} was given for maintenance[/bold blue]"
+            f"[bold blue]Coffee-machine with ID {machine_id} was given for maintenance[/bold blue]"
         )
     except (CoffeeMachineNotFoundError, CoffeeMachineStateError) as e:
         raise CLIBusinessError(str(e))
@@ -194,13 +190,11 @@ def service(
 @app.command()
 def resume(
     ctx: typer.Context,
-    machine: Annotated[
+    machine_id: Annotated[
         int,
         typer.Option(
-            "--machine",
-            "-m",
-            "--machine-id",
-            help="Id of the coffee-machine",
+            "--id",
+            help="ID of the coffee-machine",
             callback=validate_non_negative,
         ),
     ],
@@ -211,9 +205,9 @@ def resume(
     handler = CoffeeMachineResumeHandler(machine_repo)
 
     try:
-        handler.handle(machine)
+        handler.handle(machine_id)
         console.print(
-            f"[bold blue]Coffee-machine with ID {machine} was taken from maintenance[/bold blue]"
+            f"[bold blue]Coffee-machine with ID {machine_id} was taken from maintenance[/bold blue]"
         )
     except (CoffeeMachineNotFoundError, CoffeeMachineStateError) as e:
         raise CLIBusinessError(str(e))

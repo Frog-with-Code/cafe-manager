@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.table import Table
 
 from cafe_manager.application.use_cases.employee_handlers import (
+    EmployeeCreateAtmosphere,
     EmployeeFireHandler,
     EmployeeHireHandler,
     EmployeeInfoHandler,
@@ -46,7 +47,7 @@ def fire(
     ctx: typer.Context,
     employee_id: Annotated[
         str,
-        typer.Option("--employee", "--employee-id", "-e", help="Id of the employee"),
+        typer.Option("--id", help="ID of the employee"),
     ],
 ):
     """Fire employee by his ID"""
@@ -56,9 +57,7 @@ def fire(
 
     try:
         handler.handle(employee_id)
-        console.print(
-            f"[bold blue]Employee was fired[/bold blue]"
-        )
+        console.print(f"[bold blue]Employee was fired[/bold blue]")
     except EmployeeNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -94,3 +93,19 @@ def info(
 
     if table.row_count > 0:
         console.print(table)
+
+
+@app.command("create-atmosphere")
+def create_atmosphere(
+    ctx: typer.Context,
+):
+    """The employee creates the atmosphere by telling a joke"""
+    env_path = get_env_path(ctx)
+    employee_repo = SQLiteEmployeeRepo(env_path)
+    handler = EmployeeCreateAtmosphere(employee_repo)
+
+    try:
+        joke = handler.handle()
+        console.print(f"[bold blue]Employee tells a joke:\n{joke}[/bold blue]")
+    except EmployeeNotFoundError as e:
+        raise CLIBusinessError(str(e))

@@ -64,11 +64,13 @@ class KitchenStartHandler:
 
         return employee
 
-    def handle(self, employee_id: str | None) -> str | None:
+    def handle(
+        self, employee_id: str | None
+    ) -> tuple[str, str | None, int | None] | tuple[None, ...]:
         order = self._order_repo.get_oldest_paid()
 
         if order is None:
-            return None
+            return (None,) * 3
 
         employee = self._get_employee(employee_id)
 
@@ -86,7 +88,7 @@ class KitchenStartHandler:
         self._order_repo.save(order)
         self._employee_repo.save(employee)
 
-        return order.order_id
+        return order.order_id, order.employee_id, order.machine_id
 
 
 class KitchenListPending:

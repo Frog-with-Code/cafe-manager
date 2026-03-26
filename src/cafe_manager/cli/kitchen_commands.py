@@ -46,6 +46,7 @@ def show_list_pending(
     handler = KitchenListPending(order_repo)
 
     orders = handler.handle()
+    
     table = Table(title="pending orders")
     table.add_column("", min_width=7)
     table.add_column("id", min_width=10)
@@ -80,7 +81,7 @@ def start(
     ctx: typer.Context,
     employee_id: Annotated[
         str | None,
-        typer.Option("--id", help="Id of the order to start cooking"),
+        typer.Option("--id", help="ID of the order to start cooking"),
     ] = None,
 ):
     """Start cooking oldest paid order"""
@@ -99,12 +100,17 @@ def start(
     )
 
     try:
-        order_id = handler.handle(employee_id)
+        order_id, employee_id, machine_id = handler.handle(employee_id)
         if order_id is None:
             console.print("[bold blue]No paid orders[/bold blue]")
         else:
+            w = 5
+            machine_text = f"{'Machine:':{w}} {machine_id}" if machine_id else ""
             console.print(
-                f"[bold blue]Order with ID {order_id} was handed over for cooking[/bold blue]"
+                f"""[bold blue]Order with ID {order_id} was handed over for cooking 
+                {'Employee:':<{w}} {employee_id} 
+                {machine_text}
+                [/bold blue]"""
             )
     except (EmployeeNotFoundError, KitchenOverloadError) as e:
         raise CLIBusinessError(str(e))
@@ -115,7 +121,7 @@ def complete(
     ctx: typer.Context,
     order_id: Annotated[
         str,
-        typer.Option("--id", help="Id of the order to complete"),
+        typer.Option("--id", help="ID of the order to complete"),
     ],
 ):
     """Complete order in progress"""

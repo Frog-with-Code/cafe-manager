@@ -1,4 +1,8 @@
-from cafe_manager.common.exceptions import MenuItemExistsError, MenuItemNotFoundError
+from cafe_manager.common.exceptions import (
+    IngredientNotFoundError,
+    MenuItemExistsError,
+    MenuItemNotFoundError,
+)
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.domain.entities.menu import (
     Ingredient,
@@ -8,7 +12,7 @@ from cafe_manager.domain.entities.menu import (
     Recipe,
     MenuItemType,
 )
-from cafe_manager.application.interfaces import MenuRepo
+from cafe_manager.application.interfaces import InventoryRepo, MenuRepo
 
 
 class MenuInfoHandler:
@@ -34,24 +38,30 @@ class MenuInfoHandler:
 
 
 class MenuAddItemHandler:
-    def __init__(self, menu_repo: MenuRepo) -> None:
+    def __init__(self, menu_repo: MenuRepo, inventory_repo: InventoryRepo) -> None:
         self._menu_repo = menu_repo
+        self._inventory_repo = inventory_repo
 
     def handle(
         self,
         name: str,
         price: Money,
         category: MenuItemCategory,
-        ingredients_data: dict[str, dict[str, float]],
+        ingredients_data: dict[str, float],
         overwrite: bool,
     ) -> None:
         if not overwrite and self._menu_repo.get_by_name(name):
             raise MenuItemExistsError(f"Menu item with name '{name}' already exists")
 
-        ingredients = {
-            Ingredient(name, Unit(data["unit"])): data["amount"]
-            for name, data in ingredients_data.items()
-        }
+        ingredients = {}
+        for ingr_name, amount in ingredients_data.items():
+            ingr = self._inventory_repo.get_by_names({ingr_name})
+
+            if ingr is None:
+                raise IngredientNotFoundError(f"Ingredient '{ingr_name}' is unknown")
+
+            ingredients[ingr] = amount
+
         recipe = Recipe(ingredients=ingredients)
         item = MenuItem(name=name, recipe=recipe, price=price, category=category)
 

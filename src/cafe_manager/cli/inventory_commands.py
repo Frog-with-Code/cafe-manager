@@ -125,7 +125,7 @@ def supply(
             metavar="MONEY",
         ),
     ],
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
@@ -148,7 +148,7 @@ def supply(
     handler = InventorySupplyHandler(inventory_repo, finance_repo)
 
     try:
-        handler.handle(name=name, amount=quantity, price=price, account_id=account)
+        handler.handle(name=name, amount=quantity, price=price, account_id=account_id)
         console.print(
             f"[bold blue]Inventory was supplied by '{name}' in amount of {quantity}[/bold blue]"
         )

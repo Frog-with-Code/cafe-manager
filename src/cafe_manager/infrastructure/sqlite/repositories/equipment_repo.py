@@ -1,4 +1,4 @@
-from cafe_manager.domain.entities.equipment import Chair
+from cafe_manager.domain.entities.equipment import Chair, CoffeeMachine
 from cafe_manager.application.interfaces import (
     ChairRepo,
     CoffeeMachineRepo,
@@ -305,3 +305,14 @@ class SQLiteCoffeeMachineRepo(AbstractSQliteRepo, CoffeeMachineRepo):
 
             machines = [self._convert_to_entity(row) for row in rows]
             return machines
+
+    def get_free(self) -> CoffeeMachine | None:
+        with self._get_connection() as conn:
+            row = conn.execute(
+                "SELECT * from coffee_machines WHERE state = 'idle'"
+            ).fetchone()
+
+            if not row:
+                return None
+
+            return self._convert_to_entity(row)

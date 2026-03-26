@@ -45,13 +45,13 @@ def buy(
             metavar="MONEY",
         ),
     ],
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
             "--account-id",
             "-a",
-            help="Id of the financial account to take money from",
+            help="ID of the financial account to take money from",
         ),
     ] = None,
 ):
@@ -62,7 +62,7 @@ def buy(
     handler = ChairBuyHandler(finance_repo=finance_repo, chair_repo=chair_repo)
 
     try:
-        handler.handle(price, account)
+        handler.handle(price, account_id)
         console.print("[bold blue]New chair was bought[/bold blue]")
     except (AccountNotFoundError, InsufficientBudgetError) as e:
         raise CLIBusinessError(str(e))
@@ -71,13 +71,11 @@ def buy(
 @app.command()
 def discard(
     ctx: typer.Context,
-    chair: Annotated[
+    chair_id: Annotated[
         int,
         typer.Option(
-            "--chair",
-            "-c",
-            "--chair-id",
-            help="Id of the chair",
+            "--id",
+            help="ID of the chair",
             callback=validate_non_negative,
         ),
     ],
@@ -89,8 +87,8 @@ def discard(
     handler = ChairDiscardHandler(chair_repo, table_repo)
 
     try:
-        handler.handle(chair)
-        console.print(f"[bold blue]Chair with id {chair} was discarded[/bold blue]")
+        handler.handle(chair_id)
+        console.print(f"[bold blue]Chair with ID {chair_id} was discarded[/bold blue]")
     except (ChairNotFoundError, TableNotFoundError) as e:
         raise CLIBusinessError(str(e))
 

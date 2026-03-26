@@ -12,12 +12,14 @@ class ClientCreateHandler:
         self._id_generator = id_generator
 
     def handle(self, name: str) -> str:
-        while True:
+        for _ in range(self._id_generator.max_attempts):
             generated_id = self._id_generator.generate_unique_code(Client)
             client = self._client_repo.get_by_id(generated_id)
 
             if client is None:
                 break
+        else:
+            raise RuntimeError("Unique code was not generated. Try to use longer code")
 
         new_client = Client(generated_id, name)
         self._client_repo.save(new_client)

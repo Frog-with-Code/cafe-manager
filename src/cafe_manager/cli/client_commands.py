@@ -1,7 +1,6 @@
 import typer
 from typing import Annotated
 from rich.console import Console
-from rich.table import Table
 
 from cafe_manager.application.use_cases.client_handlers import (
     ClientCreateHandler,

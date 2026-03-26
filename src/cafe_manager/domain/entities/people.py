@@ -37,7 +37,6 @@ class Employee:
             case EmployeeState.BUSY:
                 self.rest_start = datetime.now()
                 self._state = EmployeeState.FREE
-                print("Employee is free now")
             case _:
                 raise EmployeeStateError("Unknown state")
 

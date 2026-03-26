@@ -91,3 +91,11 @@ class Order:
             )
 
         self._state = OrderState.READY
+         
+    def complete(self) -> None:
+        if self._state != OrderState.READY:
+            raise OrderStateError(
+                "Impossible to complete order in any state except 'READY'"
+            )
+
+        self._state = OrderState.COMPLETED

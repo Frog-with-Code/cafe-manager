@@ -83,7 +83,7 @@ class SQLiteInventoryRepo(AbstractSQliteRepo, InventoryRepo):
         with self._get_connection() as conn:
             row = conn.execute(
                 "SELECT * from inventory WHERE name = ?",
-                (name),
+                (name,),
             ).fetchone()
 
             if not row:

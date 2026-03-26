@@ -1,5 +1,6 @@
 import typer
 from typing import Annotated
+from rich.console import Console
 
 from cafe_manager.common.exceptions import (
     CLIUnexpectedError,
@@ -11,13 +12,13 @@ from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
 )
 
 from .custom_types import Money, parse_money
-from .context import get_env_path, init_context, BASE_DIR
+from .context import init_context, BASE_DIR
 from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
 from cafe_manager.application.use_cases.cafe_handlers import *
 from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
 
 app = typer.Typer()
-
+console = Console()
 env_manager = EnvironmentManager()
 
 
@@ -32,7 +33,9 @@ def create(
     try:
         handler = CafeCreateHandler(BASE_DIR, env_manager)
         handler.handle(name)
-        print(f"New cafe environment with name {name} was created")
+        console.print(
+            f"[bold blue]New cafe environment with name {name} was created[/bold blue]"
+        )
     except (CafeEnvExistsError, CafeEnvNameError) as e:
         raise CLIBusinessError(str(e))
     except Exception as e:
@@ -55,7 +58,7 @@ def remove(
             "--force",
             "-f",
             prompt="Warning! This operation is not reversible. Are you sure you want to delete this cafe?",
-            help="Don't ask your permission before performing"
+            help="Don't ask your permission before performing",
         ),
     ] = False,
 ):
@@ -64,7 +67,9 @@ def remove(
         if force:
             handler = CafeRemoveHandler(BASE_DIR, env_manager, BASE_DIR)
             handler.handle(name)
-            print(f"Cafe environment with name {name} was deleted")
+            console.print(
+                f"[bold blue]Cafe environment with name {name} was deleted[/bold blue]"
+            )
     except CafeEnvNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -79,7 +84,9 @@ def activate(
     try:
         handler = CafeActivateHandler(BASE_DIR, env_manager, BASE_DIR)
         handler.handle(name)
-        print(f"Cafe environment with name {name} was activated")
+        console.print(
+            f"[bold blue]Cafe environment with name {name} was activated[/bold blue]"
+        )
     except CafeEnvNoActiveError as e:
         raise CLIBusinessError(str(e))
 
@@ -90,7 +97,7 @@ def deactivate():
     try:
         handler = CafeDeactivateHandler(BASE_DIR, env_manager, BASE_DIR)
         handler.handle()
-        print(f"Cafe environment was deactivated")
+        console.print(f"[bold blue]Cafe environment was deactivated[/bold blue]")
     except CafeEnvNoActiveError as e:
         pass
 
@@ -119,15 +126,21 @@ def init(
 
         handler = CafeInitHandler(cafe_repo, finance_repo)
         handler.handle(name, address, capital)
+
+        console.print("[bold blue]Environment was initialized[/bold blue]")
     except CafeEnvAlreadyInitError as e:
         raise CLIBusinessError(str(e))
-    
+
+
 @app.command(name="list")
-def env_list(ctx: typer.Context) -> None:
+def env_list() -> None:
     """Show list of cafe environments"""
-    env_manager = EnvironmentManager()
     active_env = env_manager.get_active_env_path(BASE_DIR)
-    
+
     for env in BASE_DIR.glob("*.db"):
-        active_sign = " *" if env == active_env else ""
-        print(f"{env.stem + active_sign:<30} {env.resolve()}")
+        l_border, r_border = (
+            ("[bold blue]", "[/bold blue]")
+            if env == active_env
+            else ("[dim blue]", "[/dim blue]")
+        )
+        console.print(f"{l_border}{env.stem:<30} {env.resolve()}{r_border}")

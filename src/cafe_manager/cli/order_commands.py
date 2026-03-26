@@ -29,6 +29,7 @@ from cafe_manager.domain.services.id_generating_service import IDGeneratingServi
 from cafe_manager.domain.services.payment_service import PaymentService
 from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
     SQLiteChairRepo,
+    SQLiteCoffeeMachineRepo,
     SQLiteTableRepo,
 )
 from cafe_manager.infrastructure.sqlite.repositories.finance_repo import (
@@ -62,13 +63,13 @@ def create(
             help="Menu items in format name:amount",
         ),
     ],
-    table: Annotated[
+    table_id: Annotated[
         int | None,
         typer.Option(
             "--table",
             "--table-id",
             "-t",
-            help="Id of the reserved table",
+            help="ID of the reserved table",
             callback=validate_non_negative,
         ),
     ] = None,
@@ -99,7 +100,7 @@ def create(
     )
 
     try:
-        order_id = handler.handle(items, table, continue_session)  # type: ignore
+        order_id = handler.handle(items, table_id, continue_session)  # type: ignore
         console.print(
             f"[bold blue]New order with ID {order_id} was created[/bold blue]"
         )
@@ -118,9 +119,9 @@ def create(
 @app.command()
 def pay(
     ctx: typer.Context,
-    order: Annotated[
+    order_id: Annotated[
         str,
-        typer.Option("--order", "--order-id", "-o", help="Id of the order to pay for"),
+        typer.Option("--id", help="ID of the order to pay for"),
     ],
     price: Annotated[
         Money,
@@ -132,18 +133,18 @@ def pay(
             metavar="MONEY",
         ),
     ],
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
             "--account-id",
             "-a",
-            help="Id of the financial account to take money from",
+            help="ID of the financial account to take money from",
         ),
     ] = None,
-    client: Annotated[
+    client_id: Annotated[
         str | None,
-        typer.Option("--client", "--client-id", "-c", help="Id of the client"),
+        typer.Option("--client", "--client-id", "-c", help="ID of the client"),
     ] = None,
 ):
     """Pay the order"""
@@ -161,7 +162,10 @@ def pay(
 
     try:
         handler.handle(
-            order_id=order, cash_provided=price, account_id=account, client_id=client
+            order_id=order_id,
+            cash_provided=price,
+            account_id=account_id,
+            client_id=client_id,
         )
         console.print("[bold blue]Order was paid[/bold blue]")
     except (
@@ -226,9 +230,11 @@ def serve(
     env_path = get_env_path(ctx)
     order_repo = SQLiteOrderRepo(env_path)
     employee_repo = SQLiteEmployeeRepo(env_path)
-    handler = OrderServeHandler(order_repo, employee_repo)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    handler = OrderServeHandler(order_repo, employee_repo, machine_repo)
 
     try:
         handler.handle(order_id)
+        console.print("[bold blue]Order was served[/bold blue]")
     except (OrderNotFoundError, OrderStateError) as e:
         raise CLIBusinessError(str(e))

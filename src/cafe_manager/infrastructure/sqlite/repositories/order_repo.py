@@ -24,7 +24,7 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
                     employee_id TEXT,
                     machine_id INTEGER,   
                     created_at DATETIME, 
-                    paid_at TEXT,
+                    paid_at DATETIME,
                     total_price MONEY, 
                     state TEXT   
                 )

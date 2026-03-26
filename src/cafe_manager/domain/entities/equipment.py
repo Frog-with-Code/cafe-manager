@@ -178,3 +178,12 @@ class CoffeeMachine:
 
         self._state = CoffeeMachineState.WORKING
         self.cycles_count += 1
+
+    def stop(self) -> None:
+        if self._state != CoffeeMachineState.WORKING:
+            raise CoffeeMachineStateError("Coffee-machine is not working")
+
+        if self.cycles_count >= self.maintenance_limit:
+            self._state = CoffeeMachineState.SERVICE_REQUIRED
+        else:
+            self._state = CoffeeMachineState.IDLE

@@ -25,7 +25,6 @@ from cafe_manager.common.exceptions import (
     TableSuitableNotFoundError,
 )
 from cafe_manager.domain.services.seating_service import SeatingService
-from cafe_manager.application.interfaces import TableRepo
 from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
     SQLiteChairRepo,
     SQLiteTableRepo,
@@ -64,13 +63,13 @@ def buy(
             callback=validate_non_negative,
         ),
     ] = 4,
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
             "--account-id",
             "-a",
-            help="Id of the financial account to take money from",
+            help="ID of the financial account to take money from",
         ),
     ] = None,
 ):
@@ -81,7 +80,7 @@ def buy(
     handler = TableBuyHandler(finance_repo=finance_repo, table_repo=table_repo)
 
     try:
-        handler.handle(price=price, seats=seats, account_id=account)
+        handler.handle(price=price, seats=seats, account_id=account_id)
         console.print(f"[bold blue]New {seats}-seats table was bought[/bold blue]")
     except (AccountNotFoundError, InsufficientBudgetError) as e:
         raise CLIBusinessError(str(e))
@@ -90,13 +89,11 @@ def buy(
 @app.command()
 def discard(
     ctx: typer.Context,
-    table: Annotated[
+    table_id: Annotated[
         int,
         typer.Option(
-            "--table",
-            "-t",
-            "--table-id",
-            help="Id of the table",
+            "--id",
+            help="ID of the table",
             callback=validate_non_negative,
         ),
     ],
@@ -117,8 +114,8 @@ def discard(
     handler = TableDiscardHandler(table_repo, chair_repo)
 
     try:
-        handler.handle(table)
-        console.print(f"[bold blue]Table '{table}' was discarded[/bold blue]")
+        handler.handle(table_id)
+        console.print(f"[bold blue]Table '{table_id}' was discarded[/bold blue]")
     except TableNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -189,7 +186,7 @@ def reserve(
 @app.command()
 def free(
     ctx: typer.Context,
-    table_id: Annotated[int, typer.Option("--id", help="Id of the table")],
+    table_id: Annotated[int, typer.Option("--id", help="ID of the table")],
 ):
     """Free reserved or occupied table"""
     env_path = get_env_path(ctx)
@@ -210,10 +207,10 @@ def free(
 @app.command("assign-chair")
 def assign_chair(
     ctx: typer.Context,
-    table: Annotated[
+    table_id: Annotated[
         int, typer.Option("--table", "--table-id", "-t", help="ID of the table")
     ],
-    chair: Annotated[
+    chair_id: Annotated[
         int, typer.Option("--chair", "--chair-id", "-c", help="ID of the chair")
     ],
 ):
@@ -224,9 +221,9 @@ def assign_chair(
     handler = AssignChairToTableHandler(table_repo, chair_repo)
 
     try:
-        handler.handle(table_id=table, chair_id=chair)
+        handler.handle(table_id=table_id, chair_id=chair_id)
         console.print(
-            f"[bold blue]Chair {chair} was assigned to table {table}[/bold blue]"
+            f"[bold blue]Chair {chair_id} was assigned to table {table_id}[/bold blue]"
         )
     except (TableNotFoundError, ChairNotFoundError, TablePlacesError) as e:
         raise CLIBusinessError(str(e))

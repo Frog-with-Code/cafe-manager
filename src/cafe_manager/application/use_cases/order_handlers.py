@@ -2,6 +2,7 @@ from uuid import UUID
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     ClientNotFoundError,
+    CoffeeMachineNotFoundError,
     EmployeeNotAssignedError,
     EmployeeNotFoundError,
     IngredientNotFoundError,
@@ -12,7 +13,12 @@ from cafe_manager.common.exceptions import (
     TableNotFoundError,
     TableStateError,
 )
-from cafe_manager.domain.entities.equipment import Chair, Table, TableState
+from cafe_manager.domain.entities.equipment import (
+    Chair,
+    CoffeeMachine,
+    Table,
+    TableState,
+)
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.domain.entities.menu import Ingredient, MenuItem
 from cafe_manager.domain.entities.order import Order
@@ -22,6 +28,7 @@ from cafe_manager.domain.services.payment_service import PaymentService
 from cafe_manager.application.interfaces import (
     ChairRepo,
     ClientRepo,
+    CoffeeMachineRepo,
     EmployeeRepo,
     FinanceRepo,
     InventoryRepo,
@@ -91,11 +98,13 @@ class OrderCreateHandler:
         return table, chairs
 
     def _generate_id(self) -> str:
-        while True:
+        for _ in range(self._id_generator.max_attempts):
             generated_id = self._id_generator.generate_unique_code(Order)
 
             if self._order_repo.get_by_id(generated_id) is None:
                 break
+        else:
+            raise RuntimeError("Unique code was not generated. Try to use longer code")
 
         return generated_id
 
@@ -123,6 +132,8 @@ class OrderCreateHandler:
 
         if table_id is not None:
             table, chairs = self._occupy_table(table_id, continue_session)
+
+        self._check_ingredients(ingredients_required)
 
         generated_id = self._generate_id()
         order = Order(order_id=generated_id, items=items, table_id=table_id)
@@ -186,9 +197,27 @@ class OrderPayHandler:
 
 
 class OrderServeHandler:
-    def __init__(self, order_repo: OrderRepo, employee_repo: EmployeeRepo) -> None:
+    def __init__(
+        self,
+        order_repo: OrderRepo,
+        employee_repo: EmployeeRepo,
+        machine_repo: CoffeeMachineRepo,
+    ) -> None:
         self._order_repo = order_repo
         self._employee_repo = employee_repo
+        self._machine_repo = machine_repo
+
+    def _stop_coffee_machine(self, machine_id: int | None) -> CoffeeMachine | None:
+        machine = None
+        if machine_id:
+            machine = self._machine_repo.get_by_id(machine_id)
+            if machine is None:
+                raise CoffeeMachineNotFoundError(
+                    f"Coffee-machine with ID {machine_id} was not found"
+                )
+            machine.stop()
+
+        return machine
 
     def handle(self, order_id: str) -> None:
         order = self._order_repo.get_by_id(order_id)
@@ -204,11 +233,14 @@ class OrderServeHandler:
                 f"Employee with ID {order.employee_id} was not found"
             )
 
-        order.end_cooking()
+        order.complete()
         employee.rest()
+        machine = self._stop_coffee_machine(order.machine_id)
 
         self._order_repo.save(order)
         self._employee_repo.save(employee)
+        if machine:
+            self._machine_repo.save(machine)
 
 
 class OrderInfoHandler:

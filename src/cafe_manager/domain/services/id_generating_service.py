@@ -6,6 +6,7 @@ class IDGeneratingService:
 
     def __init__(self) -> None:
         self.attempts = 0
+        self.max_attempts = 100
 
     def _get_prefix(self, obj_class: type) -> str:
         name = obj_class.__name__
@@ -16,9 +17,7 @@ class IDGeneratingService:
         characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         return "".join(random.choices(characters, k=length))
 
-    def generate_unique_code(self, obj_class: type, max_attempts: int = 100, length: int = 6) -> str:
+    def generate_unique_code(self, obj_class: type, length: int = 6) -> str:
         self.attempts += 1
-        if self.attempts > max_attempts:
-            raise RuntimeError("Unique code was not generated. Try to use longer code")
 
         return self._get_prefix(obj_class) + "-" + self._generate_code(length)

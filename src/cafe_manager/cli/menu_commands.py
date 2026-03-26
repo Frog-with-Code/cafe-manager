@@ -15,6 +15,9 @@ from cafe_manager.common.exceptions import (
     MenuItemNotFoundError,
 )
 from cafe_manager.domain.entities.menu import MenuItemCategory
+from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import (
+    SQLiteInventoryRepo,
+)
 from cafe_manager.infrastructure.sqlite.repositories.menu_repo import SQLiteMenuRepo
 from cafe_manager.domain.entities.menu import Unit
 
@@ -77,19 +80,13 @@ def add_item(
         MenuItemCategory,
         typer.Option("--category", "-c", help="Category of the menu item"),
     ],
-    milk_foam: Annotated[
-        bool,
-        typer.Option(
-            "--milk-foam", "-m", help="Milk foam is required for the menu item"
-        ),
-    ] = False,
     overwrite: Annotated[
         bool,
         typer.Option("--overwrite", "-o", help="Overwrite information about menu item"),
     ] = False,
 ):
     """Add new item to the menu"""
-    ingredients: dict[str, dict[str, float]] = {}
+    ingredients: dict[str, float] = {}
     while True:
         print()
         ing_name = typer.prompt("Enter ingredient (or enter 'q' to quit)", type=str)
@@ -103,33 +100,22 @@ def add_item(
             )
             continue
 
-        ing_unit = typer.prompt("Enter unit of the ingredient", type=str)
-
-        try:
-            Unit(ing_unit)
-        except ValueError:
-            values = [item.value for item in Unit]
-            err_console.print(
-                f"[bold red]Unknown unit of the ingredient.[bold red] \n [bold yellow]Only {values} are allowed[/bold yellow]"
-            )
-            continue
-
         ing_amount = typer.prompt("Enter amount of the ingredient", type=float)
-
         try:
             validate_non_negative(ing_amount)
         except typer.BadParameter:
             err_console.print("[bold red]Ingredient amount must be positive[/bold red]")
             continue
 
-        ingredients[ing_name] = {"unit": ing_unit, "amount": ing_amount}
+        ingredients[ing_name] = ing_amount
 
     if not ingredients:
         raise CLIBusinessError("Impossible to add menu item without ingredients")
 
     env_path = get_env_path(ctx)
     menu_repo = SQLiteMenuRepo(env_path)
-    handler = MenuAddItemHandler(menu_repo)
+    inventory_repo = SQLiteInventoryRepo(env_path)
+    handler = MenuAddItemHandler(menu_repo, inventory_repo)
 
     try:
         handler.handle(

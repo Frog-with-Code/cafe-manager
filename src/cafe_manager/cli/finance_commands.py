@@ -26,27 +26,27 @@ app = typer.Typer(callback=init_context)
 @app.command()
 def invest(
     ctx: typer.Context,
-    amount: Annotated[
+    money: Annotated[
         Money,
         typer.Option(
-            "--amount",
-            "-a",
+            "--money",
+            "-m",
             parser=parse_money,
             metavar="MONEY",
             help="Amount of money to invest",
         ),
     ],
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
             "--account-id",
             "-a",
-            help="Id of the target financial account",
+            help="ID of the target financial account",
         ),
     ] = None,
-    message: Annotated[
-        str, typer.Option("--message", "-m", help="Message of the transaction")
+    description: Annotated[
+        str, typer.Option("--description", "-d", help="Description of the transaction")
     ] = "Investment",
 ):
     """Invest money to the cafe budget"""
@@ -55,7 +55,7 @@ def invest(
     handler = FinanceInvestHandler(finance_repo)
 
     try:
-        handler.handle(amount, account, message)
+        handler.handle(money, account_id, description)
     except AccountNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -63,7 +63,7 @@ def invest(
 @app.command()
 def stats(
     сtx: typer.Context,
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
@@ -85,7 +85,7 @@ def stats(
     handler = FinanceStatsHandler(finance_repo)
 
     try:
-        stats = handler.handle(account_id=account, start_date=start, end_date=end)
+        stats = handler.handle(account_id=account_id, start_date=start, end_date=end)
 
         w = 10
         console.print(f"[bold blue]{'ID:':<{w}} {stats['id']}[/bold blue]")
@@ -104,13 +104,13 @@ def stats(
 @app.command()
 def history(
     ctx: typer.Context,
-    account: Annotated[
+    account_id: Annotated[
         UUID | None,
         typer.Option(
             "--account",
             "--account-id",
             "-a",
-            help="Id of the target financial account",
+            help="ID of the target financial account",
         ),
     ] = None,
     limit: Annotated[
@@ -132,7 +132,7 @@ def history(
     handler = FinanceHistoryHandler(finance_repo)
 
     try:
-        history = handler.handle(account, limit)
+        history = handler.handle(account_id, limit)
     except AccountNotFoundError as e:
         raise CLIBusinessError(str(e))
 
@@ -166,10 +166,10 @@ def history(
 @app.command("set-primary")
 def set_primary(
     ctx: typer.Context,
-    account: Annotated[
+    account_id: Annotated[
         UUID,
         typer.Argument(
-            help="Id of the target financial account",
+            help="ID of the target financial account",
         ),
     ],
 ):
@@ -179,6 +179,6 @@ def set_primary(
     handler = FinanceSetPrimaryHandler(finance_repo)
 
     try:
-        handler.handle(account)
+        handler.handle(account_id)
     except AccountNotFoundError as e:
         raise CLIBusinessError(str(e))
