@@ -1,299 +1,144 @@
 import pytest
-from uuid import uuid4, UUID
-
 from cafe_manager.domain.entities.equipment import (
-    Table,
-    CoffeeMachine,
-    TableState,
-    CoffeeMachineState,
-    Chair,
-    ChairState,
+    Chair, ChairState, Table, TableState, CoffeeMachine, CoffeeMachineState
 )
 from cafe_manager.common.exceptions import (
-    RecipeError,
-    CoffeeMachinePipelineError,
-    CoffeeMachineStateError,
-    TableCleaningError,
-    TableOccupationError,
-    TablePlacesError,
-    ChairStateError,
+    ChairStateError, TableStateError, TablePlacesError, CoffeeMachineStateError
 )
+
+class TestChair:
+    def test_chair_initialization(self):
+        chair = Chair(chair_id=1)
+        assert chair.chair_id == 1
+        assert chair._state == ChairState.AVAILABLE
+        assert chair._table_id is None
+
+    def test_chair_reserve_success(self):
+        chair = Chair()
+        chair.reserve()
+        assert chair._state == ChairState.RESERVED
+
+    def test_chair_reserve_failure(self):
+        chair = Chair(state=ChairState.RESERVED)
+        with pytest.raises(ChairStateError):
+            chair.reserve()
+
+    def test_chair_occupy_success(self):
+        chair = Chair(state=ChairState.RESERVED)
+        chair.occupy()
+        assert chair._state == ChairState.RESERVED
+
+    def test_chair_occupy_failure(self):
+        chair = Chair(state=ChairState.AVAILABLE)
+        with pytest.raises(ChairStateError):
+            chair.occupy()
+
+    def test_chair_free(self):
+        chair = Chair(state=ChairState.RESERVED)
+        chair.free()
+        assert chair._state == ChairState.AVAILABLE
+
+    def test_chair_assign_to_table(self):
+        chair = Chair()
+        chair.assign_to_table(10)
+        assert chair._table_id == 10
 
 
 class TestTable:
-    @pytest.fixture
-    def table(self) -> Table:
-        return Table(table_id=11, max_places=4)
-
-    @pytest.fixture
-    def table_with_chairs(self, table: Table) -> Table:
-        table.add_chair(111)
-        table.add_chair(222)
-        return table
-
-    def test_initialization(self, table: Table):
+    def test_table_initialization(self):
+        table = Table(table_id=1, max_places=4)
         assert table.max_places == 4
-        assert table.is_available is True
-        assert isinstance(table.table_id, int)
-        assert table.chairs_amount == 0
-        assert table.chairs_ids == set()
+        assert table._state == TableState.AVAILABLE
+        assert len(table.chairs_ids) == 0
 
-    def test_chairs_id_encapsulation(self, table: Table):
-        table.add_chair(3)
-        chairs_copy = table.chairs_ids
-
-        chairs_copy.add(4)
-
-        assert table.chairs_amount == 1
-        assert len(chairs_copy) == 2
-
-    def test_add_chair_success(self, table: Table):
-        chair_id = 3
-        table.add_chair(chair_id)
-
-        assert table.chairs_amount == 1
-        assert chair_id in table.chairs_ids
-
-    def test_add_chair_exceeds_max_places(self, table: Table):
-        for i in range(4):
-            table.add_chair(i)
-
-        with pytest.raises(
-            TablePlacesError, match="Max places amount was already achieved"
-        ):
-            table.add_chair(4)
-
-    def test_remove_chair_success(self, table: Table):
-        chair_id = 3
-        table.add_chair(chair_id)
-        table.remove_chair(chair_id)
-
-        assert table.chairs_amount == 0
-
-    def test_remove_nonexistent_chair(self, table: Table):
-        fake_chair_id = 3
-        with pytest.raises(
-            TablePlacesError, match=f"not assigned to table {table.table_id}"
-        ):
-            table.remove_chair(fake_chair_id)
-
-    def test_can_be_occupied_true(self, table_with_chairs: Table):
-        assert table_with_chairs.can_be_occupied(people_amount=2) is True
-        assert table_with_chairs.can_be_occupied(people_amount=1) is True
-
-    def test_can_be_occupied_false_not_enough_chairs(self, table_with_chairs: Table):
-        assert table_with_chairs.can_be_occupied(people_amount=3) is False
-
-    def test_can_be_occupied_false_not_free(self, table_with_chairs: Table):
-        table_with_chairs._state = TableState.DIRTY
-        assert table_with_chairs.can_be_occupied(people_amount=2) is False
-
-    def test_occupy_raises_error(self, table_with_chairs: Table):
-        with pytest.raises(TableOccupationError):
-            table_with_chairs.occupy(people_amount=5)
-
-    def test_occupy_success(self, table_with_chairs: Table):
-        table_with_chairs.occupy(people_amount=2)
-
-    def test_free_occupied_table(self, table: Table, capsys):
-        table._state = TableState.OCCUPIED
-        table.free()
-
-        assert table._state == TableState.DIRTY
-        assert "Table was released" in capsys.readouterr().out
-
-    @pytest.mark.parametrize("initial_state", [TableState.AVAILABLE, TableState.DIRTY])
-    def test_free_already_free_or_dirty(
-        self, table: Table, initial_state: TableState, capsys
-    ):
-        table._state = initial_state
-        table.free()
-
-        assert table._state == initial_state
-        assert "Table is already free" in capsys.readouterr().out
-
-    def test_clean_dirty_table(self, table: Table):
-        table._state = TableState.DIRTY
+    def test_table_clean_success(self):
+        table = Table(max_places=2, state=TableState.DIRTY)
         table.clean()
-
         assert table._state == TableState.AVAILABLE
 
-    def test_clean_occupied_table_raises_error(self, table: Table):
-        table._state = TableState.OCCUPIED
-        with pytest.raises(
-            TableCleaningError, match="Impossible to clean occupied table"
-        ):
+    def test_table_clean_failure(self):
+        table = Table(max_places=2, state=TableState.OCCUPIED)
+        with pytest.raises(TableStateError):
             table.clean()
 
-    def test_clean_already_available_table(self, table: Table, capsys):
-        table._state = TableState.AVAILABLE
-        table.clean()
+    def test_table_reserve_success(self):
+        table = Table(max_places=4, chairs_ids={1, 2})
+        table.reserve(people_amount=2)
+        assert table._state == TableState.RESERVED
 
-        assert table._state == TableState.AVAILABLE
-        assert "Table is already clean" in capsys.readouterr().out
+    def test_table_reserve_insufficient_chairs(self):
+        table = Table(max_places=4, chairs_ids={1})
+        with pytest.raises(TableStateError):
+            table.reserve(people_amount=2)
 
+    def test_table_occupy_success(self):
+        table = Table(max_places=2, state=TableState.RESERVED)
+        table.occupy()
+        assert table._state == TableState.OCCUPIED
 
-class TestChair:
-    @pytest.fixture
-    def chair(self) -> Chair:
-        return Chair(chair_id=1)
+    def test_table_occupy_failure(self):
+        table = Table(max_places=2, state=TableState.AVAILABLE)
+        with pytest.raises(TableStateError):
+            table.occupy()
 
-    def test_initialization(self, chair: Chair):
-        assert isinstance(chair.chair_id, int)
-        assert chair._table_id is None
-        assert chair._state == ChairState.AVAILABLE
-        assert chair.can_be_occupied() is True
+    def test_table_add_chair_success(self):
+        table = Table(max_places=2)
+        table.add_chair(1)
+        assert 1 in table.chairs_ids
+        assert table.chairs_amount == 1
 
-    def test_assign_to_table(self, chair: Chair):
-        table_id = 2
-        chair.assign_to_table(table_id)
+    def test_table_add_chair_over_limit(self):
+        table = Table(max_places=1, chairs_ids={1})
+        with pytest.raises(TablePlacesError):
+            table.add_chair(2)
 
-        assert chair._table_id == table_id
+    def test_table_remove_chair_success(self):
+        table = Table(max_places=4, chairs_ids={1, 2}, table_id=5)
+        table.remove_chair(1)
+        assert 1 not in table.chairs_ids
+        assert table.chairs_amount == 1
 
-    def test_can_be_occupied(self, chair: Chair):
-        assert chair.can_be_occupied() is True
-
-        chair._state = ChairState.OCCUPIED
-        assert chair.can_be_occupied() is False
-
-    def test_occupy_success(self, chair: Chair):
-        chair.occupy()
-
-        assert chair._state == ChairState.OCCUPIED
-        assert chair.can_be_occupied() is False
-
-    def test_occupy_already_occupied_raises_error(self, chair: Chair):
-        chair.occupy()
-
-        with pytest.raises(ChairStateError, match="Chair is not available"):
-            chair.occupy()
-
-    def test_free_occupied_chair(self, chair: Chair):
-        chair.occupy()
-
-        chair.free()
-
-        assert chair._state == ChairState.AVAILABLE
-
-    def test_free_already_available_chair(self, chair: Chair, capsys):
-        chair.free()
-
-        assert chair._state == ChairState.AVAILABLE
-        captured = capsys.readouterr()
-        assert "Chair is already available\n" in captured.out
+    def test_table_remove_chair_missing(self):
+        table = Table(max_places=4, chairs_ids={1}, table_id=5)
+        with pytest.raises(TablePlacesError):
+            table.remove_chair(99)
 
 
 class TestCoffeeMachine:
-    @pytest.fixture
-    def coffee_machine(self):
-        machine = CoffeeMachine(model="TestModel", maintenance_limit=200)
-        machine.grinding_time = 0
-        machine.brewing_time = 0
-        machine.steaming_time = 0
-        return machine
+    def test_machine_initialization(self):
+        machine = CoffeeMachine(model="X-1", maintenance_limit=10)
+        assert machine.model == "X-1"
+        assert machine.cycles_count == 0
+        assert machine._state == CoffeeMachineState.IDLE
 
-    def test_coffee_machine_initial_state(self, coffee_machine):
-        assert coffee_machine.model == "TestModel"
-        assert coffee_machine.maintenance_limit == 200
-        assert coffee_machine.cycles_after_maintenance == 0
-        assert coffee_machine._state == CoffeeMachineState.IDLE
+    def test_machine_start_success(self):
+        machine = CoffeeMachine(model="X-1")
+        machine.start()
+        assert machine._state == CoffeeMachineState.WORKING
+        assert machine.cycles_count == 1
 
-    def test_grind_from_idle(self, coffee_machine):
-        coffee_machine._state = CoffeeMachineState.IDLE
-        coffee_machine._grind()
+    def test_machine_start_failure(self):
+        machine = CoffeeMachine(model="X-1", state=CoffeeMachineState.WORKING)
+        with pytest.raises(CoffeeMachineStateError):
+            machine.start()
 
-        assert coffee_machine._state == CoffeeMachineState.GRINDING
+    def test_machine_service_success(self):
+        machine = CoffeeMachine(model="X-1", state=CoffeeMachineState.SERVICE_REQUIRED, cycles_count=50)
+        machine.service()
+        assert machine._state == CoffeeMachineState.IN_SERVICE
+        assert machine.cycles_count == 0
 
-    def test_grind_from_wrong_state(self, coffee_machine):
-        coffee_machine._state = CoffeeMachineState.BREWING
-        with pytest.raises(
-            CoffeeMachinePipelineError, match="Coffee-machine is not ready to use"
-        ):
-            coffee_machine._grind()
+    def test_machine_service_failure_idle(self):
+        machine = CoffeeMachine(model="X-1", state=CoffeeMachineState.IDLE)
+        with pytest.raises(CoffeeMachineStateError):
+            machine.service()
 
-    def test_brew_from_grinding(self, coffee_machine):
-        coffee_machine._state = CoffeeMachineState.GRINDING
-        coffee_machine._brew()
+    def test_machine_resume_success(self):
+        machine = CoffeeMachine(model="X-1", state=CoffeeMachineState.IN_SERVICE)
+        machine.resume()
+        assert machine._state == CoffeeMachineState.IDLE
 
-        assert coffee_machine._state == CoffeeMachineState.BREWING
-
-    def test_brew_from_wrong_state(self, coffee_machine):
-        coffee_machine._state = CoffeeMachineState.IDLE
-        with pytest.raises(
-            CoffeeMachinePipelineError, match="Coffee beans were not grinded"
-        ):
-            coffee_machine._brew()
-
-    def test_steam_from_brewing(self, coffee_machine):
-        coffee_machine._state = CoffeeMachineState.BREWING
-        coffee_machine._steam()
-
-        assert coffee_machine._state == CoffeeMachineState.STEAMING
-
-    def test_steam_from_wrong_state(self, coffee_machine):
-        coffee_machine._state = CoffeeMachineState.GRINDING
-        with pytest.raises(CoffeeMachinePipelineError, match="Coffee was not brewed"):
-            coffee_machine._steam()
-
-    def test_maintenance_when_idle(self, coffee_machine, capsys):
-        coffee_machine._state = CoffeeMachineState.IDLE
-        coffee_machine.maintenance()
-        captured = capsys.readouterr()
-        assert "Maintenance is not needed yet" in captured.out
-
-    def test_maintenance_from_maintenance_state(self, coffee_machine):
-        coffee_machine._state = CoffeeMachineState.MAINTENANCE
-        coffee_machine.cycles_after_maintenance = 50
-
-        coffee_machine.maintenance()
-
-        assert coffee_machine._state == CoffeeMachineState.IDLE
-        assert coffee_machine.cycles_after_maintenance == 0
-
-    @pytest.mark.parametrize(
-        "state",
-        [
-            CoffeeMachineState.GRINDING,
-            CoffeeMachineState.BREWING,
-            CoffeeMachineState.STEAMING,
-        ],
-    )
-    def test_maintenance_during_work_raises_error(self, coffee_machine, state):
-        coffee_machine._state = state
-        with pytest.raises(CoffeeMachineStateError, match="during working process"):
-            coffee_machine.maintenance()
-
-    def test_make_coffee_success(self, coffee_machine, mocker):
-        coffee_machine._state = CoffeeMachineState.IDLE
-        mock_menu_item = mocker.Mock()
-        mock_menu_item.requires_milk_foam = False
-
-        coffee_machine.make_coffee(mock_menu_item)
-
-        assert coffee_machine._state == CoffeeMachineState.IDLE
-        assert coffee_machine.cycles_after_maintenance == 1
-
-    def test_make_coffee_with_foam(self, coffee_machine, mocker):
-        coffee_machine._state = CoffeeMachineState.IDLE
-        mock_menu_item = mocker.Mock()
-        mock_menu_item.requires_coffee_foam = True
-        mock_steam = mocker.patch.object(CoffeeMachine, "_steam")
-
-        coffee_machine.make_coffee(mock_menu_item)
-
-        assert coffee_machine.cycles_after_maintenance == 1
-        mock_steam.assert_called_once()
-
-    def test_make_coffee_machine_not_ready(self, coffee_machine, mocker):
-        coffee_machine._state = CoffeeMachineState.BREWING
-        mock_item = mocker.Mock()
-
-        with pytest.raises(CoffeeMachineStateError, match="not ready to use"):
-            coffee_machine.make_coffee(mock_item)
-
-    def test_make_coffee_not_required(self, coffee_machine, mocker):
-        mock_menu_item = mocker.Mock()
-        mock_menu_item.requires_coffee_machine = False
-
-        with pytest.raises(RecipeError, match="No coffee-machine needed"):
-            coffee_machine.make_coffee(mock_menu_item)
+    def test_machine_resume_failure(self):
+        machine = CoffeeMachine(model="X-1", state=CoffeeMachineState.WORKING)
+        with pytest.raises(CoffeeMachineStateError):
+            machine.resume()

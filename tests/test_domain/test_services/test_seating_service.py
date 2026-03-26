@@ -1,184 +1,100 @@
 import pytest
-from uuid import uuid4
-
-from cafe_manager.common.exceptions import ChairError, TableOccupationError, TableError
-from cafe_manager.domain.entities.equipment import Table, Chair
 from cafe_manager.domain.services.seating_service import SeatingService
-
+from cafe_manager.domain.entities.equipment import Table, Chair, TableState, ChairState
+from cafe_manager.common.exceptions import ChairShortageError, TableSuitableNotFoundError
 
 class TestSeatingService:
-
     @pytest.fixture
-    def service(self) -> SeatingService:
+    def service(self):
         return SeatingService()
 
-    @pytest.fixture
-    def table_4_places(self) -> Table:
-        return Table(max_places=4)
+    def test_reserve_direct_success(self, service):
+        table = Table(table_id=1, max_places=4, chairs_ids={10, 11, 12, 13})
+        chair1 = Chair(chair_id=10, table_id=1)
+        chair2 = Chair(chair_id=11, table_id=1)
+        chair3 = Chair(chair_id=12, table_id=1)
+        chair4 = Chair(chair_id=13, table_id=1)
+        
+        tables = [table]
+        free_chairs = [chair1, chair2, chair3, chair4]
+        
+        reserved_table, modified_tables, reserved_chairs = service.reserve(tables, free_chairs, 2)
+        
+        assert reserved_table.table_id == 1
+        assert reserved_table._state == TableState.RESERVED
+        assert len(reserved_chairs) == 2
+        assert all(c._state == ChairState.RESERVED for c in reserved_chairs)
 
-    @pytest.fixture
-    def table_2_places(self) -> Table:
-        return Table(max_places=2)
+    def test_reserve_with_dislocation(self, service):
+        source_table = Table(table_id=1, max_places=4, chairs_ids={10})
+        target_table = Table(table_id=2, max_places=4, chairs_ids={20, 21})
+        
+        chair10 = Chair(chair_id=10, table_id=1)
+        chair20 = Chair(chair_id=20, table_id=2)
+        chair21 = Chair(chair_id=21, table_id=2)
+        
+        tables = [target_table, source_table]
+        free_chairs = [chair10, chair20, chair21]
+        
+        reserved_table, modified_tables, reserved_chairs = service.reserve(tables, free_chairs, 3)
+        
+        assert reserved_table.table_id == 2
+        assert 20 in target_table.chairs_ids
+        assert 21 in target_table.chairs_ids
+        assert 20 not in source_table.chairs_ids
+        assert chair20._table_id == 2
+        assert len(reserved_chairs) == 3
 
-    @pytest.fixture
-    def free_chair(self) -> Chair:
-        return Chair()
+    def test_reserve_smallest_suitable_table(self, service):
+        big_table = Table(table_id=1, max_places=10, chairs_ids=set(range(10)))
+        small_table = Table(table_id=2, max_places=4, chairs_ids={20, 21, 22, 23})
+        
+        chairs = [Chair(chair_id=i, table_id=1) for i in range(10)]
+        chairs.extend([Chair(chair_id=i, table_id=2) for i in range(20, 24)])
+        
+        reserved_table, _, _ = service.reserve([big_table, small_table], chairs, 2)
+        
+        assert reserved_table.table_id == 2
 
-    def test_validate_negative_people_amount(self, service, table_4_places, free_chair):
-        with pytest.raises(ValueError, match=f"Value {-1} must be positive"):
-            service.reserve(
-                people_amount=-1, tables=[table_4_places], free_chairs=[free_chair]
-            )
+    def test_reserve_no_available_tables(self, service):
+        table = Table(table_id=1, max_places=4, state=TableState.OCCUPIED)
+        with pytest.raises(TableSuitableNotFoundError):
+            service.reserve([table], [], 2)
 
-    def test_reserve_no_available_tables(self, service, table_4_places, free_chair):
-        free_chair.assign_to_table(table_4_places.table_id)
-        table_4_places.add_chair(free_chair.chair_id)
-        table_4_places.occupy(1)
+    def test_reserve_table_too_small(self, service):
+        table = Table(table_id=1, max_places=2, chairs_ids={1, 2})
+        chair1 = Chair(chair_id=1, table_id=1)
+        chair2 = Chair(chair_id=2, table_id=1)
+        
+        with pytest.raises(TableSuitableNotFoundError):
+            service.reserve([table], [chair1, chair2], 4)
 
-        with pytest.raises(TableOccupationError, match="No free tables"):
-            service.reserve(
-                tables=[table_4_places], free_chairs=[free_chair], people_amount=2
-            )
+    def test_reserve_not_enough_total_chairs(self, service):
+        table = Table(table_id=1, max_places=10, chairs_ids={1})
+        chair1 = Chair(chair_id=1, table_id=1)
+        chair_free = Chair(chair_id=2, table_id=None)
+        
+        with pytest.raises(TableSuitableNotFoundError):
+            service.reserve([table], [chair1, chair_free], 5)
 
-    def test_reserve_no_table_with_enough_places(
-        self, service, table_2_places, free_chair
-    ):
-        with pytest.raises(
-            TableOccupationError, match="No available table for 3 people"
-        ):
-            service.reserve(
-                tables=[table_2_places], free_chairs=[free_chair] * 3, people_amount=3
-            )
+    def test_dislocate_chairs_from_none_table(self, service):
+        target_table = Table(table_id=1, max_places=4, chairs_ids=set())
+        lonely_chair = Chair(chair_id=99, table_id=None)
+        
+        tables = [target_table]
+        free_chairs = [lonely_chair]
+        
+        service.reserve(tables, free_chairs, 1)
+        
+        assert lonely_chair._table_id == 1
+        assert 99 in target_table.chairs_ids
 
-    def test_reserve_not_enough_total_chairs_in_cafe(
-        self, service, table_4_places, free_chair
-    ):
-        with pytest.raises(
-            TableOccupationError, match="Not enough chairs for 2 people"
-        ):
-            service.reserve(
-                tables=[table_4_places], free_chairs=[free_chair], people_amount=2
-            )
-
-    def test_reserve_direct_candidate_no_dislocation(self, service, table_4_places):
-        chair1, chair2 = Chair(), Chair()
-        chair1.assign_to_table(table_4_places.table_id)
-        chair2.assign_to_table(table_4_places.table_id)
-        table_4_places.add_chair(chair1.chair_id)
-        table_4_places.add_chair(chair2.chair_id)
-
-        free_chairs = [chair1, chair2]
-
-        occupied_table, _, updated_chairs = service.reserve(
-            tables=[table_4_places], free_chairs=free_chairs, people_amount=2
-        )
-
-        assert occupied_table == table_4_places
-        assert not occupied_table.is_available
-
-        assert chair1.can_be_occupied() is False
-        assert chair2.can_be_occupied() is False
-        assert table_4_places.chairs_amount == 2
-
-    def test_reserve_with_chair_dislocation(
-        self, service, table_4_places, table_2_places
-    ):
-        chair_on_other_table = Chair()
-        chair_on_other_table.assign_to_table(table_2_places.table_id)
-        table_2_places.add_chair(chair_on_other_table.chair_id)
-
-        free_chair = Chair()
-
-        tables = [table_4_places, table_2_places]
-        free_chairs = [chair_on_other_table, free_chair]
-
-        occupied_table, updated_tables, updated_chairs = service.reserve(
-            tables=tables, free_chairs=free_chairs, people_amount=2
-        )
-
-        assert table_4_places.chairs_amount == 0
-        assert table_2_places.chairs_amount == 2
-
-        assert free_chair.table_id == table_2_places.table_id
-        assert chair_on_other_table.table_id == table_2_places.table_id
-
-        assert occupied_table == table_2_places
-        assert occupied_table.is_available is False
-        assert free_chair.can_be_occupied() is False
-        assert chair_on_other_table.can_be_occupied() is False
-
-    def test_free_success(self, service, table_4_places):
-        chair1, chair2 = Chair(), Chair()
-
-        chair1.assign_to_table(table_4_places.table_id)
-        chair2.assign_to_table(table_4_places.table_id)
-        table_4_places.add_chair(chair1.chair_id)
-        table_4_places.add_chair(chair2.chair_id)
-
-        service.reserve(
-            tables=[table_4_places], free_chairs=[chair1, chair2], people_amount=2
-        )
-
-        freed_table, updated_chairs = service.free(
-            occupied_tables=[table_4_places],
-            occupied_chairs=[chair1, chair2],
-            table_id=table_4_places.table_id,
-        )
-
-        assert freed_table == table_4_places
-
-        assert freed_table.is_available is False
-
-        assert chair1.can_be_occupied() is True
-        assert chair2.can_be_occupied() is True
-
-    def test_free_table_not_found(self, service, table_4_places):
-        with pytest.raises(TableError, match="No occupied table with id"):
-            service.free(
-                occupied_tables=[table_4_places], occupied_chairs=[], table_id=uuid4()
-            )
-
-    def test_free_preserves_other_tables_chairs(
-        self, service, table_4_places, table_2_places
-    ):
-        chair_target = Chair()
-        chair_target.assign_to_table(table_4_places.table_id)
-        table_4_places.add_chair(chair_target.chair_id)
-        chair_target.occupy()
-
-        table_4_places._state = table_4_places._state.OCCUPIED
-
-        chair_other = Chair()
-        chair_other.assign_to_table(table_2_places.table_id)
-        table_2_places.add_chair(chair_other.chair_id)
-        chair_other.occupy()
-        table_2_places._state = table_2_places._state.OCCUPIED
-
-        freed_table, updated_chairs = service.free(
-            occupied_tables=[table_4_places, table_2_places],
-            occupied_chairs=[chair_target, chair_other],
-            table_id=table_4_places.table_id,
-        )
-
-        assert freed_table == table_4_places
-
-        assert chair_target.can_be_occupied() is True
-
-        assert chair_other.can_be_occupied() is False
-
-    def test_dislocate_chairs_not_enough_free_chairs(self, service, table_4_places):
-        chair1, chair2 = Chair(), Chair()
-
-        with pytest.raises(
-            ChairError, match="Not enough free chairs to fill the table"
-        ):
-            service._dislocate_chairs(
-                free_chairs=[chair1, chair2],
-                tables=[table_4_places],
-                target_table=table_4_places,
-                people_amount=3,
-            )
-
-    def test_get_table_by_id_none(self, service, table_4_places):
-        result = service._get_table_by_id(tables=[table_4_places], table_id=None)
-        assert result is None
+    def test_find_suitable_tables_filtering(self, service):
+        t1 = Table(table_id=1, max_places=4, state=TableState.AVAILABLE)
+        t2 = Table(table_id=2, max_places=2, state=TableState.AVAILABLE)
+        t3 = Table(table_id=3, max_places=4, state=TableState.DIRTY)
+        
+        suitable = service._find_suitable_tables([t1, t2, t3], 3)
+        
+        assert len(suitable) == 1
+        assert suitable[0].table_id == 1

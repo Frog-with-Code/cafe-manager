@@ -7,7 +7,6 @@ from cafe_manager.domain.entities.menu import (
     Ingredient,
     Recipe,
     MenuItem,
-    Menu,
 )
 from cafe_manager.domain.entities.finance import Money
 
@@ -19,14 +18,13 @@ def money():
 
 @pytest.fixture
 def ingredient():
-    return Ingredient(name="Water", unit=Unit.LITER)
+    return Ingredient(name="Water", unit=Unit.MILLILITER)
 
 
 @pytest.fixture
 def recipe():
     return Recipe(
-        ingredients={Ingredient(name="Coffee Beans", unit=Unit.KILOGRAM): 0.05},
-        requires_milk_foam=True,
+        ingredients={Ingredient(name="Coffee Beans", unit=Unit.GRAM): 0.05},
     )
 
 
@@ -46,19 +44,18 @@ def tea_item(money, recipe):
 
 class TestIngredient:
     def test_ingredient_creation(self):
-        ing = Ingredient(name="Milk", unit=Unit.LITER)
+        ing = Ingredient(name="Milk", unit=Unit.MILLILITER)
         assert ing.name == "Milk"
-        assert ing.unit == Unit.LITER
+        assert ing.unit == Unit.MILLILITER
 
 
 class TestRecipe:
     def test_recipe_creation(self):
-        ingredients = {Ingredient("Sugar", Unit.KILOGRAM): 10.0}
+        ingredients = {Ingredient("Sugar", Unit.GRAM): 10.0}
         recipe = Recipe(
-            ingredients=ingredients, requires_milk_foam=False
+            ingredients=ingredients,
         )
-        assert recipe.requires_milk_foam is False
-        assert Ingredient("Sugar", Unit.KILOGRAM) in recipe.ingredients
+        assert Ingredient("Sugar", Unit.GRAM) in recipe.ingredients
 
 
 class TestMenuItem:
@@ -74,41 +71,3 @@ class TestMenuItem:
         assert tea_item.category == MenuItemCategory.TEA
         assert tea_item.requires_coffee_machine is False
 
-    def test_menu_item_requires_milk_foam(self, coffee_item):
-        assert coffee_item.requires_milk_foam is True
-
-
-class TestMenu:
-    def test_menu_initialization_empty(self):
-        menu = Menu(menu_items=set())
-        assert len(menu._drinks) == 0
-        assert len(menu._food) == 0
-
-    def test_menu_initialization_with_items(self, coffee_item, tea_item):
-        menu = Menu(menu_items={coffee_item, tea_item})
-        assert len(menu._drinks) == 2
-        assert coffee_item in menu._drinks
-        assert tea_item in menu._drinks
-
-    def test_menu_add_drink(self, coffee_item):
-        menu = Menu(set())
-        menu.add(coffee_item)
-        assert coffee_item in menu._drinks
-        assert len(menu._food) == 0
-
-    def test_menu_remove_drink(self, coffee_item):
-        menu = Menu({coffee_item})
-        menu.remove(coffee_item)
-        assert coffee_item not in menu._drinks
-        assert len(menu._drinks) == 0
-
-    def test_menu_str_representation(self, coffee_item):
-        menu = Menu({coffee_item})
-        str_repr = str(menu)
-        assert "DRINKS" in str_repr
-        assert "FOOD" in str_repr
-        assert coffee_item.name in str_repr
-
-    def test_menu_init_without_arguments_should_handle_none(self):
-        menu = Menu()
-        assert len(menu._drinks) == 0

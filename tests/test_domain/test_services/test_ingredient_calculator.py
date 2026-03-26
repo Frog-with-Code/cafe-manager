@@ -20,24 +20,24 @@ class TestIngredientCalculator:
 
     @pytest.fixture
     def dough(self) -> Ingredient:
-        return Ingredient("Dough", Unit.KILOGRAM)
+        return Ingredient("Dough", Unit.GRAM)
 
     @pytest.fixture
     def cheese(self) -> Ingredient:
-        return Ingredient("Cheese", Unit.KILOGRAM)
+        return Ingredient("Cheese", Unit.GRAM)
 
     @pytest.fixture
     def tomato(self) -> Ingredient:
-        return Ingredient("Tomato", Unit.KILOGRAM)
+        return Ingredient("Tomato", Unit.GRAM)
 
     @pytest.fixture
     def pizza_item(self, dough, cheese, tomato) -> MenuItem:
-        recipe = Recipe(False, {dough: 2.0, cheese: 3.0, tomato: 1.0})
+        recipe = Recipe({dough: 2.0, cheese: 3.0, tomato: 1.0})
         return MenuItem("Pizza", recipe)
 
     @pytest.fixture
     def pasta_item(self, dough, cheese) -> MenuItem:
-        recipe = Recipe(False, {dough: 1.0, cheese: 2.0})
+        recipe = Recipe({dough: 1.0, cheese: 2.0})
         return MenuItem("Pasta", recipe)
 
     def test_get_ingredients_required(
