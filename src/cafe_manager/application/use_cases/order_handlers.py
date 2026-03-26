@@ -2,7 +2,6 @@ from uuid import UUID
 
 from cafe_manager.domain.entities.equipment import (
     Chair,
-    CoffeeMachine,
     Table,
     TableState,
 )
@@ -18,7 +17,6 @@ from cafe_manager.domain.services import (
 from cafe_manager.application.interfaces import (
     ChairRepo,
     ClientRepo,
-    CoffeeMachineRepo,
     EmployeeRepo,
     FinanceRepo,
     InventoryRepo,
@@ -30,7 +28,6 @@ from cafe_manager.application.interfaces import (
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     ClientNotFoundError,
-    CoffeeMachineNotFoundError,
     EmployeeNotAssignedError,
     EmployeeNotFoundError,
     IngredientNotFoundError,
@@ -206,28 +203,16 @@ class OrderServeHandler:
         self,
         order_repo: OrderRepo,
         employee_repo: EmployeeRepo,
-        machine_repo: CoffeeMachineRepo,
     ) -> None:
         self._order_repo = order_repo
         self._employee_repo = employee_repo
-        self._machine_repo = machine_repo
-
-    def _stop_coffee_machine(self, machine_id: int | None) -> CoffeeMachine | None:
-        machine = None
-        if machine_id:
-            machine = self._machine_repo.get_by_id(machine_id)
-            if machine is None:
-                raise CoffeeMachineNotFoundError(
-                    f"Coffee-machine with ID {machine_id} was not found"
-                )
-            machine.stop()
-
-        return machine
 
     def handle(self, order_id: str) -> None:
         order = self._order_repo.get_by_id(order_id)
         if order is None:
             raise OrderNotFoundError(f"Order with ID {order_id} was not found")
+
+        order.complete()
 
         if order.employee_id is None:
             raise EmployeeNotAssignedError("Employee not assigned to the order")
@@ -238,14 +223,10 @@ class OrderServeHandler:
                 f"Employee with ID {order.employee_id} was not found"
             )
 
-        order.complete()
         employee.rest()
-        machine = self._stop_coffee_machine(order.machine_id)
 
         self._order_repo.save(order)
         self._employee_repo.save(employee)
-        if machine:
-            self._machine_repo.save(machine)
 
 
 class OrderInfoHandler:

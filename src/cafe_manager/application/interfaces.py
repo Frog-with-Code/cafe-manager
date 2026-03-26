@@ -174,6 +174,9 @@ class MenuRepo(Protocol):
 class ClientRepo(Protocol):
     def get_by_id(self, client_id: str) -> Client | None:
         pass
+    
+    def get_by_name(self, name: str) -> list[Client] | None:
+        pass
 
     def save(self, client: Client) -> None:
         pass

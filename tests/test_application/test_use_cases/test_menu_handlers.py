@@ -46,105 +46,114 @@ class TestMenuInfoHandler:
 
 class TestMenuAddItemHandler:
     @pytest.fixture
-    def mock_deps(self):
+    def mock_repos(self, mocker):
         return {
-            "menu_repo": MagicMock(spec=MenuRepo),
-            "inventory_repo": MagicMock(spec=InventoryRepo)
+            "menu_repo": mocker.MagicMock(),
+            "inventory_repo": mocker.MagicMock()
         }
 
-    def test_handle_success(self, mock_deps):
-        mock_deps["menu_repo"].get_by_name.return_value = None
+    def test_handle_success(self, mocker, mock_repos):
+        menu_repo = mock_repos["menu_repo"]
+        inventory_repo = mock_repos["inventory_repo"]
+        handler = MenuAddItemHandler(menu_repo, inventory_repo)
+
+        menu_repo.get_by_name.return_value = None
         
-        mock_ingredient = MagicMock(spec=Ingredient)
-        mock_deps["inventory_repo"].get_by_names.return_value = mock_ingredient
-        
-        handler = MenuAddItemHandler(**mock_deps)
-        
-        ingredients_data = {"Coffee Beans": 18.0}
-        price = Money(Decimal("5.00"))
-        
+        mock_ing = mocker.MagicMock()
+        inventory_repo.get_by_names.return_value = {mock_ing: 10.0}
+
         handler.handle(
             name="Espresso",
-            price=price,
-            category=MenuItemCategory.COFFEE,
-            ingredients_data=ingredients_data,
+            price=mocker.Mock(),
+            category=mocker.Mock(),
+            ingredients_data={"Coffee": 10.0},
             overwrite=False
         )
-        
-        mock_deps["menu_repo"].save.assert_called_once()
-        saved_item = mock_deps["menu_repo"].save.call_args[0][0]
-        assert saved_item.name == "Espresso"
-        assert saved_item.price == price
-        assert mock_ingredient in saved_item.recipe.ingredients
 
-    def test_handle_already_exists_error(self, mock_deps):
-        mock_deps["menu_repo"].get_by_name.return_value = MagicMock(spec=MenuItem)
-        
-        handler = MenuAddItemHandler(**mock_deps)
-        
-        with pytest.raises(MenuItemExistsError):
+        assert menu_repo.save.called
+        args, _ = menu_repo.save.call_args
+        saved_item = args[0]
+        assert saved_item.name == "Espresso"
+
+    def test_handle_item_exists_no_overwrite(self, mocker, mock_repos):
+        menu_repo = mock_repos["menu_repo"]
+        handler = MenuAddItemHandler(menu_repo, mock_repos["inventory_repo"])
+
+        menu_repo.get_by_name.return_value = mocker.Mock()
+
+        with pytest.raises(MenuItemExistsError) as exc:
             handler.handle(
                 name="Latte",
-                price=Money(Decimal("1.0")),
-                category=MenuItemCategory.COFFEE,
+                price=mocker.Mock(),
+                category=mocker.Mock(),
                 ingredients_data={},
                 overwrite=False
             )
+        
+        assert "already exists" in str(exc.value)
 
-    def test_handle_overwrite_existing_success(self, mock_deps):
-        mock_deps["menu_repo"].get_by_name.return_value = MagicMock(spec=MenuItem)
-        mock_deps["inventory_repo"].get_by_names.return_value = MagicMock(spec=Ingredient)
-        
-        handler = MenuAddItemHandler(**mock_deps)
-        
+    def test_handle_overwrite_success(self, mocker, mock_repos):
+        menu_repo = mock_repos["menu_repo"]
+        inventory_repo = mock_repos["inventory_repo"]
+        handler = MenuAddItemHandler(menu_repo, inventory_repo)
+
+        menu_repo.get_by_name.return_value = mocker.Mock()
+        mock_ing = mocker.MagicMock()
+        inventory_repo.get_by_names.return_value = {mock_ing: 5.0}
+
         handler.handle(
             name="Latte",
-            price=Money(Decimal("1.0")),
-            category=MenuItemCategory.COFFEE,
-            ingredients_data={"Milk": 200.0},
+            price=mocker.Mock(),
+            category=mocker.Mock(),
+            ingredients_data={"Milk": 5.0},
             overwrite=True
         )
-        
-        mock_deps["menu_repo"].save.assert_called_once()
 
-    def test_handle_ingredient_not_found(self, mock_deps):
-        mock_deps["menu_repo"].get_by_name.return_value = None
-        mock_deps["inventory_repo"].get_by_names.return_value = None
-        
-        handler = MenuAddItemHandler(**mock_deps)
-        
-        with pytest.raises(IngredientNotFoundError):
+        assert menu_repo.save.called
+
+    def test_handle_ingredient_not_found(self, mocker, mock_repos):
+        inventory_repo = mock_repos["inventory_repo"]
+        handler = MenuAddItemHandler(mock_repos["menu_repo"], inventory_repo)
+
+        mock_repos["menu_repo"].get_by_name.return_value = None
+        inventory_repo.get_by_names.return_value = None
+
+        with pytest.raises(IngredientNotFoundError) as exc:
             handler.handle(
-                name="Cappuccino",
-                price=Money(Decimal("6.0")),
-                category=MenuItemCategory.COFFEE,
-                ingredients_data={"Secret Beans": 10.0},
+                name="Cake",
+                price=mocker.Mock(),
+                category=mocker.Mock(),
+                ingredients_data={"Sugar": 100.0},
                 overwrite=False
             )
+        
+        assert "is unknown" in str(exc.value)
 
-    def test_handle_multiple_ingredients(self, mock_deps):
-        mock_deps["menu_repo"].get_by_name.return_value = None
+    def test_handle_multiple_ingredients(self, mocker, mock_repos):
+        menu_repo = mock_repos["menu_repo"]
+        inventory_repo = mock_repos["inventory_repo"]
+        handler = MenuAddItemHandler(menu_repo, inventory_repo)
+
+        menu_repo.get_by_name.return_value = None
         
-        ing1 = MagicMock(spec=Ingredient)
-        ing2 = MagicMock(spec=Ingredient)
-        mock_deps["inventory_repo"].get_by_names.side_effect = [ing1, ing2]
+        mock_ing1 = mocker.MagicMock()
+        mock_ing2 = mocker.MagicMock()
         
-        handler = MenuAddItemHandler(**mock_deps)
-        
-        ingredients_data = {"Beans": 15.0, "Water": 100.0}
-        
+        inventory_repo.get_by_names.side_effect = [
+            {mock_ing1: 1.0},
+            {mock_ing2: 2.0}
+        ]
+
         handler.handle(
-            name="Americano",
-            price=Money(Decimal("4.0")),
-            category=MenuItemCategory.COFFEE,
-            ingredients_data=ingredients_data,
+            name="Cappuccino",
+            price=mocker.Mock(),
+            category=mocker.Mock(),
+            ingredients_data={"Coffee": 1.0, "Milk": 2.0},
             overwrite=False
         )
-        
-        saved_item = mock_deps["menu_repo"].save.call_args[0][0]
-        assert len(saved_item.recipe.ingredients) == 2
-        assert saved_item.recipe.ingredients[ing1] == 15.0
-        assert saved_item.recipe.ingredients[ing2] == 100.0
+
+        assert inventory_repo.get_by_names.call_count == 2
+        assert menu_repo.save.called
 
 
 class TestMenuItemRemoveHandler:

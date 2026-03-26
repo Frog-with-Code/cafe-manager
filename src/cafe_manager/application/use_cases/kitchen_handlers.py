@@ -1,7 +1,7 @@
 from cafe_manager.domain.entities.equipment import CoffeeMachine
 from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.entities.people import Employee
-from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
+from cafe_manager.domain.services import IngredientCalculator
 
 from cafe_manager.application.interfaces import (
     CoffeeMachineRepo,
@@ -11,6 +11,7 @@ from cafe_manager.application.interfaces import (
 )
 
 from cafe_manager.common.exceptions import (
+    CoffeeMachineNotFoundError,
     EmployeeNotFoundError,
     KitchenOverloadError,
     OrderNotFoundError,
@@ -104,8 +105,21 @@ class KitchenListPending:
 
 
 class KitchenReadyHandler:
-    def __init__(self, order_repo: OrderRepo) -> None:
+    def __init__(self, order_repo: OrderRepo, machine_repo: CoffeeMachineRepo) -> None:
         self._order_repo = order_repo
+        self._machine_repo = machine_repo
+
+    def _stop_coffee_machine(self, machine_id: int | None) -> CoffeeMachine | None:
+        machine = None
+        if machine_id:
+            machine = self._machine_repo.get_by_id(machine_id)
+            if machine is None:
+                raise CoffeeMachineNotFoundError(
+                    f"Coffee-machine with ID {machine_id} was not found"
+                )
+            machine.stop()
+
+        return machine
 
     def handle(self, order_id: str) -> None:
         order = self._order_repo.get_by_id(order_id)
@@ -114,4 +128,8 @@ class KitchenReadyHandler:
 
         order.end_cooking()
 
+        machine = self._stop_coffee_machine(order.machine_id)
+
         self._order_repo.save(order)
+        if machine:
+            self._machine_repo.save(machine)

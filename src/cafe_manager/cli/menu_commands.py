@@ -14,6 +14,7 @@ from cafe_manager.application.use_cases.menu_handlers import (
     MenuAddItemHandler,
     MenuInfoHandler,
     MenuItemRemoveHandler,
+    MenuListIngredientsHandler,
 )
 
 from cafe_manager.infrastructure.sqlite.repositories import (
@@ -23,6 +24,7 @@ from cafe_manager.infrastructure.sqlite.repositories import (
 
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
+    IngredientNotFoundError,
     MenuItemExistsError,
     MenuItemNotFoundError,
 )
@@ -127,7 +129,7 @@ def add_item(
         )
 
         print_success(f"{name} was added to the menu")
-    except MenuItemExistsError as e:
+    except (MenuItemExistsError, IngredientNotFoundError) as e:
         raise CLIBusinessError(str(e))
 
 
@@ -148,5 +150,33 @@ def remove_item(
         handler.handle(name)
 
         print_success(f"{name} was removed from the menu")
+    except MenuItemNotFoundError as e:
+        raise CLIBusinessError(str(e))
+
+
+@app.command("list-ingredients")
+def list_ingredients(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Option("--name", "-n", help="Name of the menu item")],
+):
+    """List ingredients of the menu item"""
+    env_path = get_env_path(ctx)
+    menu_repo = SQLiteMenuRepo(env_path)
+    handler = MenuListIngredientsHandler(menu_repo)
+
+    try:
+        ingredients = handler.handle(name)
+
+        table = Table(title="ingredients", *["", "name", "amount"])
+
+        for i, (ingr, amount) in enumerate(ingredients.items()):
+            params = [i + 1, ingr.name, amount]
+            str_params = map(str, params)
+
+            table.add_row(*str_params)
+
+        if table.row_count > 0:
+            print_table(table)
+
     except MenuItemNotFoundError as e:
         raise CLIBusinessError(str(e))

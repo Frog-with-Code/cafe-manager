@@ -7,6 +7,7 @@ from rich.table import Table
 from .context import get_env_path, init_context
 from .custom_types import parse_money, Money
 from .styles import print_success, print_table
+from .validation import validate_non_negative
 
 from cafe_manager.domain.entities.menu import Unit
 
@@ -117,7 +118,13 @@ def supply(
         typer.Option("--name", "-n", help="Name of the ingredient"),
     ],
     quantity: Annotated[
-        float, typer.Option("--quantity", "-q", help="Quantity of ingredients")
+        float,
+        typer.Option(
+            "--quantity",
+            "-q",
+            help="Quantity of ingredients",
+            callback=validate_non_negative,
+        ),
     ],
     price: Annotated[
         Money,

@@ -1,4 +1,4 @@
-from cafe_manager.domain.entities.people import Employee
+from cafe_manager.domain.entities.people import Client, Employee
 from cafe_manager.application.interfaces import ClientRepo, EmployeeRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.people import *
@@ -126,6 +126,18 @@ class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
                 return None
 
             return self._convert_to_entity(row)
+        
+    def get_by_name(self, name: str) -> list[Client] | None:
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                "SELECT * from clients WHERE name = ?", (name,)
+            ).fetchall()
+
+            if not rows:
+                return None
+
+            rows = [self._convert_to_entity(row) for row in rows]
+            return rows
 
     def save(self, client: Client) -> None:
         with self._get_connection() as conn:

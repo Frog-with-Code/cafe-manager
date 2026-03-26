@@ -18,7 +18,7 @@ PATCH_TARGET = "cafe_manager.cli.cafe_commands"
 class TestCreateCommand:
     def test_create_success(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeCreateHandler")
-        result = runner.invoke(app, ["create", "--name", "new_cafe"])
+        result = runner.invoke(app, ["create", "new_cafe"])
 
         assert result.exit_code == 0
         mock_handler.return_value.handle.assert_called_once_with("new_cafe")
@@ -27,7 +27,7 @@ class TestCreateCommand:
     def test_create_business_error(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeCreateHandler")
         mock_handler.return_value.handle.side_effect = CafeEnvNameError("Invalid name")
-        result = runner.invoke(app, ["create", "--name", "!!!"])
+        result = runner.invoke(app, ["create", "!!!"])
 
         assert result.exit_code == 1
         assert "Invalid name" in result.stderr
@@ -36,7 +36,7 @@ class TestCreateCommand:
 class TestRemoveCommand:
     def test_remove_success(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeRemoveHandler")
-        result = runner.invoke(app, ["remove", "--name", "old_cafe", "--force"])
+        result = runner.invoke(app, ["remove", "old_cafe", "--force"])
 
         assert result.exit_code == 0
         mock_handler.return_value.handle.assert_called_once_with("old_cafe")
@@ -45,7 +45,7 @@ class TestRemoveCommand:
     def test_remove_not_found(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeRemoveHandler")
         mock_handler.return_value.handle.side_effect = CafeEnvNotFoundError("Not found")
-        result = runner.invoke(app, ["remove", "--name", "missing", "--force"])
+        result = runner.invoke(app, ["remove", "missing", "--force"])
 
         assert result.exit_code == 1
         assert "Not found" in result.stderr
@@ -54,7 +54,7 @@ class TestRemoveCommand:
 class TestActivateCommand:
     def test_activate_success(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeActivateHandler")
-        result = runner.invoke(app, ["activate", "--name", "target_cafe"])
+        result = runner.invoke(app, ["activate", "target_cafe"])
 
         assert result.exit_code == 0
         mock_handler.return_value.handle.assert_called_once_with("target_cafe")
@@ -63,7 +63,7 @@ class TestActivateCommand:
     def test_activate_error(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeActivateHandler")
         mock_handler.return_value.handle.side_effect = CafeEnvNoActiveError("Error")
-        result = runner.invoke(app, ["activate", "--name", "target_cafe"])
+        result = runner.invoke(app, ["activate", "target_cafe"])
 
         assert result.exit_code == 1
 

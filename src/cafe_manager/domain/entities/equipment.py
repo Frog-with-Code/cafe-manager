@@ -51,7 +51,7 @@ class Chair:
         if self._state != ChairState.RESERVED:
             raise ChairStateError("Chair is not reserved")
 
-        self._state = ChairState.RESERVED
+        self._state = ChairState.OCCUPIED
 
     def free(self) -> None:
         self._state = ChairState.AVAILABLE

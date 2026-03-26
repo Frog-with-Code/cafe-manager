@@ -14,7 +14,11 @@ def print_error(message: str) -> None:
 
 
 def print_info(message: str) -> None:
-    console.print(f"[blue]{message}[/blue]")
+    console.print(f"[white]{message}[/white]")
+
+
+def print_warning(message: str) -> None:
+    err_console.print(f"[yellow]{message}[/yellow]")
 
 
 def print_info_important(message: str) -> None:

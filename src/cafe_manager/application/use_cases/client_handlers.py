@@ -38,3 +38,13 @@ class ClientInfoHandler:
             raise ClientNotFoundError(f"Client with ID {client_id} was not found")
 
         return client
+
+
+class ClientListHandler:
+    def __init__(self, client_repo: ClientRepo) -> None:
+        self._client_repo = client_repo
+
+    def handle(self, name: str) -> list[Client]:
+        clients = self._client_repo.get_by_name(name)
+
+        return clients or []

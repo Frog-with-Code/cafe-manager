@@ -26,7 +26,7 @@ class TestChair:
     def test_chair_occupy_success(self):
         chair = Chair(state=ChairState.RESERVED)
         chair.occupy()
-        assert chair._state == ChairState.RESERVED
+        assert chair._state == ChairState.OCCUPIED
 
     def test_chair_occupy_failure(self):
         chair = Chair(state=ChairState.AVAILABLE)

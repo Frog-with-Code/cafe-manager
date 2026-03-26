@@ -175,92 +175,72 @@ class TestOrderPayHandler:
 
 class TestOrderServeHandler:
     @pytest.fixture
-    def mock_deps(self):
+    def mock_repos(self, mocker):
         return {
-            "order_repo": MagicMock(spec=OrderRepo),
-            "employee_repo": MagicMock(spec=EmployeeRepo),
-            "machine_repo": MagicMock(spec=CoffeeMachineRepo),
+            "order_repo": mocker.MagicMock(),
+            "employee_repo": mocker.MagicMock()
         }
 
-    def test_handle_order_not_found(self, mock_deps):
-        mock_deps["order_repo"].get_by_id.return_value = None
-        handler = OrderServeHandler(**mock_deps)
-        
-        with pytest.raises(OrderNotFoundError):
-            handler.handle("ord-ghost")
+    def test_handle_success(self, mocker, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        employee_repo = mock_repos["employee_repo"]
+        handler = OrderServeHandler(order_repo, employee_repo)
 
-    def test_handle_employee_not_assigned(self, mock_deps):
-        order = MagicMock(spec=Order)
-        order.employee_id = None
-        mock_deps["order_repo"].get_by_id.return_value = order
-        
-        handler = OrderServeHandler(**mock_deps)
-        with pytest.raises(EmployeeNotAssignedError):
-            handler.handle("ord-1")
+        mock_order = mocker.MagicMock()
+        mock_order.employee_id = "emp-777"
+        order_repo.get_by_id.return_value = mock_order
 
-    def test_handle_employee_not_found(self, mock_deps):
-        order = MagicMock(spec=Order)
-        order.employee_id = "emp-missing"
-        mock_deps["order_repo"].get_by_id.return_value = order
-        mock_deps["employee_repo"].get_by_id.return_value = None
-        
-        handler = OrderServeHandler(**mock_deps)
-        with pytest.raises(EmployeeNotFoundError):
-            handler.handle("ord-1")
+        mock_employee = mocker.MagicMock()
+        employee_repo.get_by_id.return_value = mock_employee
 
-    def test_handle_coffee_machine_not_found(self, mock_deps):
-        order = MagicMock(spec=Order)
-        order.employee_id = "emp-1"
-        order.machine_id = 99
-        employee = MagicMock(spec=Employee)
-        
-        mock_deps["order_repo"].get_by_id.return_value = order
-        mock_deps["employee_repo"].get_by_id.return_value = employee
-        mock_deps["machine_repo"].get_by_id.return_value = None
-        
-        handler = OrderServeHandler(**mock_deps)
-        with pytest.raises(CoffeeMachineNotFoundError):
-            handler.handle("ord-1")
+        handler.handle("ord-123")
 
-    def test_handle_success_without_machine(self, mock_deps):
-        order = MagicMock(spec=Order)
-        order.employee_id = "emp-1"
-        order.machine_id = None
-        employee = MagicMock(spec=Employee)
-        
-        mock_deps["order_repo"].get_by_id.return_value = order
-        mock_deps["employee_repo"].get_by_id.return_value = employee
-        
-        handler = OrderServeHandler(**mock_deps)
-        handler.handle("ord-1")
-        
-        order.complete.assert_called_once()
-        employee.rest.assert_called_once()
-        mock_deps["order_repo"].save.assert_called_once_with(order)
-        mock_deps["employee_repo"].save.assert_called_once_with(employee)
-        mock_deps["machine_repo"].save.assert_not_called()
+        mock_order.complete.assert_called_once()
+        mock_employee.rest.assert_called_once()
 
-    def test_handle_success_with_machine(self, mock_deps):
-        order = MagicMock(spec=Order)
-        order.employee_id = "emp-1"
-        order.machine_id = 10
-        employee = MagicMock(spec=Employee)
-        machine = MagicMock(spec=CoffeeMachine)
+        order_repo.save.assert_called_once_with(mock_order)
+        employee_repo.save.assert_called_once_with(mock_employee)
+
+    def test_handle_order_not_found(self, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        handler = OrderServeHandler(order_repo, mock_repos["employee_repo"])
+
+        order_repo.get_by_id.return_value = None
+
+        with pytest.raises(OrderNotFoundError) as exc:
+            handler.handle("non-existent")
         
-        mock_deps["order_repo"].get_by_id.return_value = order
-        mock_deps["employee_repo"].get_by_id.return_value = employee
-        mock_deps["machine_repo"].get_by_id.return_value = machine
+        assert "Order with ID non-existent was not found" in str(exc.value)
+
+    def test_handle_employee_not_assigned(self, mocker, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        handler = OrderServeHandler(order_repo, mock_repos["employee_repo"])
+
+        mock_order = mocker.MagicMock()
+        mock_order.employee_id = None 
+        order_repo.get_by_id.return_value = mock_order
+
+        with pytest.raises(EmployeeNotAssignedError) as exc:
+            handler.handle("ord-123")
         
-        handler = OrderServeHandler(**mock_deps)
-        handler.handle("ord-1")
+        assert "Employee not assigned to the order" in str(exc.value)
+        mock_order.complete.assert_called_once()
+
+    def test_handle_employee_not_found_in_repo(self, mocker, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        employee_repo = mock_repos["employee_repo"]
+        handler = OrderServeHandler(order_repo, employee_repo)
+
+        mock_order = mocker.MagicMock()
+        mock_order.employee_id = "ghost-id"
+        order_repo.get_by_id.return_value = mock_order
         
-        machine.stop.assert_called_once()
-        order.complete.assert_called_once()
-        employee.rest.assert_called_once()
+        employee_repo.get_by_id.return_value = None
+
+        with pytest.raises(EmployeeNotFoundError) as exc:
+            handler.handle("ord-123")
         
-        mock_deps["order_repo"].save.assert_called_once_with(order)
-        mock_deps["employee_repo"].save.assert_called_once_with(employee)
-        mock_deps["machine_repo"].save.assert_called_once_with(machine)
+        assert "Employee with ID ghost-id was not found" in str(exc.value)
 
 
 class TestOrderInfoHandler:

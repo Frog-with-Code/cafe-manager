@@ -25,7 +25,6 @@ from cafe_manager.application.use_cases.order_handlers import (
 
 from cafe_manager.infrastructure.sqlite.repositories import (
     SQLiteChairRepo,
-    SQLiteCoffeeMachineRepo,
     SQLiteTableRepo,
     SQLiteFinanceRepo,
     SQLiteInventoryRepo,
@@ -231,8 +230,7 @@ def serve(
     env_path = get_env_path(ctx)
     order_repo = SQLiteOrderRepo(env_path)
     employee_repo = SQLiteEmployeeRepo(env_path)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
-    handler = OrderServeHandler(order_repo, employee_repo, machine_repo)
+    handler = OrderServeHandler(order_repo, employee_repo)
 
     try:
         handler.handle(order_id)

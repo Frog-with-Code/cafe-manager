@@ -6,6 +6,7 @@ from cafe_manager.application.use_cases.kitchen_handlers import (
     KitchenReadyHandler,
 )
 from cafe_manager.common.exceptions import (
+    CoffeeMachineNotFoundError,
     EmployeeNotFoundError,
     KitchenOverloadError,
     OrderNotFoundError,
@@ -175,21 +176,73 @@ class TestKitchenListPending:
 
 
 class TestKitchenReadyHandler:
-    def test_handle_success(self):
-        repo = MagicMock(spec=OrderRepo)
-        order = MagicMock(spec=Order)
-        repo.get_by_id.return_value = order
+    @pytest.fixture
+    def mock_repos(self, mocker):
+        return {
+            "order_repo": mocker.MagicMock(),
+            "machine_repo": mocker.MagicMock()
+        }
 
-        handler = KitchenReadyHandler(repo)
+    def test_handle_success_no_machine(self, mocker, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        machine_repo = mock_repos["machine_repo"]
+        handler = KitchenReadyHandler(order_repo, machine_repo)
+
+        mock_order = mocker.MagicMock()
+        mock_order.machine_id = None
+        order_repo.get_by_id.return_value = mock_order
+
         handler.handle("ord-123")
 
-        order.end_cooking.assert_called_once()
-        repo.save.assert_called_once_with(order)
+        mock_order.end_cooking.assert_called_once()
+        order_repo.save.assert_called_once_with(mock_order)
+        machine_repo.get_by_id.assert_not_called()
+        machine_repo.save.assert_not_called()
 
-    def test_handle_order_not_found(self):
-        repo = MagicMock(spec=OrderRepo)
-        repo.get_by_id.return_value = None
+    def test_handle_success_with_machine(self, mocker, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        machine_repo = mock_repos["machine_repo"]
+        handler = KitchenReadyHandler(order_repo, machine_repo)
 
-        handler = KitchenReadyHandler(repo)
-        with pytest.raises(OrderNotFoundError):
-            handler.handle("ghost")
+        mock_order = mocker.MagicMock()
+        mock_order.machine_id = 5
+        order_repo.get_by_id.return_value = mock_order
+
+        mock_machine = mocker.MagicMock()
+        machine_repo.get_by_id.return_value = mock_machine
+
+        handler.handle("ord-123")
+
+        mock_order.end_cooking.assert_called_once()
+        mock_machine.stop.assert_called_once()
+        
+        order_repo.save.assert_called_once_with(mock_order)
+        machine_repo.save.assert_called_once_with(mock_machine)
+
+    def test_handle_order_not_found(self, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        handler = KitchenReadyHandler(order_repo, mock_repos["machine_repo"])
+
+        order_repo.get_by_id.return_value = None
+
+        with pytest.raises(OrderNotFoundError) as exc:
+            handler.handle("fake-id")
+        
+        assert "Order with ID fake-id was not found" in str(exc.value)
+
+    def test_handle_machine_not_found(self, mocker, mock_repos):
+        order_repo = mock_repos["order_repo"]
+        machine_repo = mock_repos["machine_repo"]
+        handler = KitchenReadyHandler(order_repo, machine_repo)
+
+        mock_order = mocker.MagicMock()
+        mock_order.machine_id = 99
+        order_repo.get_by_id.return_value = mock_order
+        
+        machine_repo.get_by_id.return_value = None
+
+        with pytest.raises(CoffeeMachineNotFoundError) as exc:
+            handler.handle("ord-123")
+        
+        assert "Coffee-machine with ID 99 was not found" in str(exc.value)
+        mock_order.end_cooking.assert_called_once()

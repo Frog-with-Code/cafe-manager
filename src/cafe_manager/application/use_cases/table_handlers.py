@@ -156,3 +156,7 @@ class TableFreeHandler:
         table.free()
         for chair in chairs or []:
             chair.free()
+
+        self._table_repo.save(table)
+        if chairs:
+            self._chair_repo.save_many(chairs)

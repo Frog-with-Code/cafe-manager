@@ -1,16 +1,17 @@
 from typing import Annotated
 
 import typer
-from rich.console import Console
+from rich.table import Table
 
 from .context import get_env_path, init_context
-from .styles import print_info, print_success
+from .styles import print_info, print_success, print_table
 
 from cafe_manager.domain.services import IDGeneratingService
 
 from cafe_manager.application.use_cases.client_handlers import (
     ClientCreateHandler,
     ClientInfoHandler,
+    ClientListHandler,
 )
 
 from cafe_manager.infrastructure.sqlite.repositories import SQLiteClientRepo
@@ -19,7 +20,6 @@ from cafe_manager.common.exceptions import CLIBusinessError, ClientNotFoundError
 
 
 app = typer.Typer(callback=init_context)
-console = Console()
 
 
 @app.command()
@@ -64,3 +64,30 @@ def info(
         print_info(f"{'Registered at:':<{w}} {client.registered_at}")
     except ClientNotFoundError as e:
         raise CLIBusinessError(str(e))
+
+
+@app.command("list")
+def list_by_name(
+    ctx: typer.Context,
+    name: Annotated[
+        str,
+        typer.Option("--name", "-n", help="Name of the target clients"),
+    ],
+):
+    """Show list of clients by their name"""
+    env_path = get_env_path(ctx)
+    client_repo = SQLiteClientRepo(env_path)
+    handler = ClientListHandler(client_repo)
+
+    clients = handler.handle(name)
+
+    table = Table(title="orders", *["", "id", "name"])
+
+    for i, client in enumerate(clients):
+        params = [i + 1, client.client_id, client.name]
+        str_params = map(str, params)
+
+        table.add_row(*str_params)
+
+    if table.row_count > 0:
+        print_table(table)

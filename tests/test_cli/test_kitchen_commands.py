@@ -64,7 +64,7 @@ class TestStartCommand:
         result = runner.invoke(app, ["start"])
         
         assert result.exit_code == 0
-        assert "No paid orders" in result.stdout
+        assert "No pending orders" in result.stderr
 
     def test_start_employee_not_found(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.KitchenStartHandler")

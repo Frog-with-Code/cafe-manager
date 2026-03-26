@@ -5,7 +5,7 @@ import typer
 from rich.table import Table
 
 from .context import get_env_path, init_context
-from .styles import print_success, print_table
+from .styles import print_success, print_table, print_warning
 
 from cafe_manager.domain.services import IngredientCalculator
 
@@ -102,15 +102,12 @@ def start(
     try:
         order_id, employee_id, machine_id = handler.handle(employee_id)
         if order_id is None:
-            print_success("No paid orders")
+            print_warning("No pending orders")
         else:
             w = 5
             machine_text = f"{'Machine:':{w}} {machine_id}" if machine_id else ""
             print_success(
-                f"""Order with ID {order_id} was handed over for cooking 
-                {'Employee:':<{w}} {employee_id} 
-                {machine_text}
-                """
+                f"Order with ID {order_id} was handed over for cooking\n{'Employee:':<{w}} {employee_id}\n{machine_text}"
             )
     except (EmployeeNotFoundError, KitchenOverloadError) as e:
         raise CLIBusinessError(str(e))
@@ -127,9 +124,12 @@ def complete(
     """Complete order in progress"""
     env_path = get_env_path(ctx)
     order_repo = SQLiteOrderRepo(env_path)
-    handler = KitchenReadyHandler(order_repo)
+    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    handler = KitchenReadyHandler(order_repo, machine_repo)
 
     try:
         handler.handle(order_id)
+
+        print_success("Order was completed")
     except (OrderNotFoundError, OrderStateError) as e:
         raise CLIBusinessError(str(e))

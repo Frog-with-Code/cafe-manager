@@ -1,5 +1,6 @@
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.domain.entities.menu import (
+    Ingredient,
     MenuItemCategory,
     MenuItem,
     Recipe,
@@ -54,11 +55,12 @@ class MenuAddItemHandler:
 
         ingredients = {}
         for ingr_name, amount in ingredients_data.items():
-            ingr = self._inventory_repo.get_by_names({ingr_name})
+            ingr_dict = self._inventory_repo.get_by_names({ingr_name})
 
-            if ingr is None:
+            if ingr_dict is None:
                 raise IngredientNotFoundError(f"Ingredient '{ingr_name}' is unknown")
 
+            ingr = next(iter(ingr_dict))
             ingredients[ingr] = amount
 
         recipe = Recipe(ingredients=ingredients)
@@ -78,3 +80,16 @@ class MenuItemRemoveHandler:
             )
 
         self._menu_repo.delete_by_name(name)
+
+
+class MenuListIngredientsHandler:
+    def __init__(self, menu_repo: MenuRepo) -> None:
+        self._menu_repo = menu_repo
+
+    def handle(self, name: str) -> dict[Ingredient, float]:
+        menu_item = self._menu_repo.get_by_name(name)
+
+        if menu_item is None:
+            raise MenuItemNotFoundError(f"Menu item with name '{name}' was not found")
+
+        return menu_item.recipe.ingredients

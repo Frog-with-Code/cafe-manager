@@ -34,7 +34,7 @@ def create(
         handler = CafeCreateHandler(BASE_DIR, env_manager)
         handler.handle(name)
 
-        print_success("New cafe environment with name '{name}' was created")
+        print_success(f"New cafe environment with name '{name}' was created")
     except (CafeEnvExistsError, CafeEnvNameError) as e:
         raise CLIBusinessError(str(e))
     except Exception as e:

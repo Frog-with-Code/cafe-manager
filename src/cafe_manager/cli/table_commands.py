@@ -191,7 +191,10 @@ def reserve(
 @app.command()
 def free(
     ctx: typer.Context,
-    table_id: Annotated[int, typer.Option("--id", help="ID of the table")],
+    table_id: Annotated[
+        int,
+        typer.Option("--id", help="ID of the table", callback=validate_non_negative),
+    ],
 ):
     """Free reserved or occupied table"""
     env_path = get_env_path(ctx)
@@ -214,10 +217,24 @@ def free(
 def assign_chair(
     ctx: typer.Context,
     table_id: Annotated[
-        int, typer.Option("--table", "--table-id", "-t", help="ID of the table")
+        int,
+        typer.Option(
+            "--table",
+            "--table-id",
+            "-t",
+            help="ID of the table",
+            callback=validate_non_negative,
+        ),
     ],
     chair_id: Annotated[
-        int, typer.Option("--chair", "--chair-id", "-c", help="ID of the chair")
+        int,
+        typer.Option(
+            "--chair",
+            "--chair-id",
+            "-c",
+            help="ID of the chair",
+            callback=validate_non_negative,
+        ),
     ],
 ):
     """Assign chair to the table"""
