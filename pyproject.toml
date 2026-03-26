@@ -1,0 +1,23 @@
+[project]
+name = "cafe-manager"
+version = "0.1.0"
+description = "CLI tool for comprehensive cafe management with isolation per venue"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Artem Shumilov", email = "frogwithcode@gmail.com" }]
+dependencies = ["typer>=0.24.1"]
+
+[dependency-groups]
+dev = ["pytest>=9.0.2", "pytest-cov>=7.1.0"]
+
+[project.scripts]
+cafma = "cafe_manager.main:run_app"
+
+[build-system]
+requires = ["uv_build>=0.8.14,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
