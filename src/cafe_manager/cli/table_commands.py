@@ -128,7 +128,7 @@ def discard(
 def info(
     ctx: typer.Context,
     expanded: Annotated[
-        bool, typer.Option("--expended", "-e", help="Expand info about tables")
+        bool, typer.Option("--expanded", "-e", help="Expand info about tables")
     ] = False,
 ) -> None:
     """Show info about tables"""

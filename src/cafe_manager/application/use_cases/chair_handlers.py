@@ -47,7 +47,7 @@ class ChairDiscardHandler:
     def handle(self, chair_id: int) -> None:
         chair = self._chair_repo.get_by_id(chair_id)
         if chair is None:
-            raise ChairNotFoundError(f"Table with id {chair_id} was not found")
+            raise ChairNotFoundError(f"Chair with id {chair_id} was not found")
 
         table_id = chair._table_id
         table = self._table_repo.get_by_id(table_id) if table_id else None

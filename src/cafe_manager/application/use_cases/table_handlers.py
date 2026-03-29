@@ -37,7 +37,7 @@ class TableBuyHandler:
 
         if account.balance < price:
             raise InsufficientBudgetError(
-                f"Not enough money to buy chair for {str(price)}"
+                f"Not enough money to buy table for {str(price)}"
             )
 
         account.add_expense(price, f"Buy {seats}-seats table")

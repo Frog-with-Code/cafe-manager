@@ -6,7 +6,7 @@ from cafe_manager.domain.entities.finance import Money, Account
 
 from cafe_manager.application.interfaces import FinanceRepo, CafeRepo
 
-from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
+from cafe_manager.infrastructure.env_manager import EnvironmentManager
 
 from cafe_manager.common.exceptions import (
     CafeEnvAlreadyInitError,
@@ -55,12 +55,13 @@ class CafeRemoveHandler:
 
         try:
             self._env_manager.remove_env(db_path)
+            
             active_env = self._env_manager.get_active_env_path(self.data_folder)
-            if active_env == db_path:
+            if active_env and active_env.resolve() == db_path.resolve():
                 self._env_manager.deactivate_env(self.data_folder)
         except FileNotFoundError as e:
             raise CafeEnvNotFoundError(
-                f"Impossible to remove cafe '{name}'. Such cafe doesn't exist"
+                f"Impossible to remove cafe '{name}'. It doesn't exist"
             ) from e
 
 

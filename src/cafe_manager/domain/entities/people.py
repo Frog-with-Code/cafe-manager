@@ -31,14 +31,7 @@ class Employee:
         self._state = EmployeeState.BUSY
 
     def rest(self) -> None:
-        match (self._state):
-            case EmployeeState.FREE:
-                print("Employee is already resting")
-            case EmployeeState.BUSY:
-                self.rest_start = datetime.now()
-                self._state = EmployeeState.FREE
-            case _:
-                raise EmployeeStateError("Unknown state")
+        self._state = EmployeeState.FREE
 
 
 class Client:

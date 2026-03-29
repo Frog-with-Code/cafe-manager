@@ -12,7 +12,6 @@ class TableState(StrEnum):
     AVAILABLE = "available"
     RESERVED = "reserved"
     OCCUPIED = "occupied"
-    DIRTY = "dirty"
 
 
 class CoffeeMachineState(StrEnum):
@@ -73,12 +72,6 @@ class Table:
         self._state = state
         self._chairs_ids = chairs_ids or set()
 
-    def clean(self) -> None:
-        if self._state in (TableState.RESERVED, TableState.OCCUPIED):
-            raise TableStateError("Impossible to clean reserved/occupied table")
-
-        self._state = TableState.AVAILABLE
-
     @property
     def chairs_ids(self) -> set[int]:
         return self._chairs_ids.copy()
@@ -112,7 +105,6 @@ class Table:
 
     def free(self) -> None:
         if self._state in (
-            TableState.AVAILABLE,
             TableState.RESERVED,
             TableState.OCCUPIED,
         ):

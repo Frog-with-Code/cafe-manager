@@ -7,7 +7,6 @@ from .finance import Money
 from cafe_manager.common.exceptions import (
     OrderIsEmptyError,
     OrderStateError,
-    TableStateError,
 )
 
 
@@ -33,6 +32,11 @@ class Order:
         total_price: Money | None = None,
         state: OrderState = OrderState.AWAITING_PAYMENT,
     ) -> None:
+        if items == {}:
+            raise OrderIsEmptyError(
+                "Impossible to create order without any items from the menu"
+            )
+
         self.order_id = order_id
         self._items = items
 
@@ -45,11 +49,6 @@ class Order:
         self.paid_at = paid_at
         self.total_price = total_price or self._calculate_price(items)
         self._state = state
-
-        if items == {}:
-            raise OrderIsEmptyError(
-                "Impossible to create order without any items from the menu"
-            )
 
     def _calculate_price(self, items: dict[MenuItem, int] | None) -> Money:
         price = Money()
@@ -77,7 +76,7 @@ class Order:
 
     def start_cooking(self, employee_id: str) -> None:
         if self._state != OrderState.PAID:
-            raise TableStateError(
+            raise OrderStateError(
                 "Impossible to start cooking order in any state except 'PAID'"
             )
 
@@ -91,7 +90,7 @@ class Order:
             )
 
         self._state = OrderState.READY
-         
+
     def complete(self) -> None:
         if self._state != OrderState.READY:
             raise OrderStateError(

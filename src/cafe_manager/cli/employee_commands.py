@@ -69,7 +69,7 @@ def fire(
 def info(
     ctx: typer.Context,
     expanded: Annotated[
-        bool, typer.Option("--expended", "-e", help="Expand info about employees")
+        bool, typer.Option("--expanded", "-e", help="Expand info about employees")
     ] = False,
 ) -> None:
     """Show info about employees"""
