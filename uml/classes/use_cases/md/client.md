@@ -7,7 +7,7 @@ config:
 classDiagram
 direction LR
 
-class ClientRepo {
+class UnitOfWork {
 <<Interface>>
 }
 
@@ -16,23 +16,23 @@ class IDGeneratingService {
 }
 
 class ClientCreateHandler {
-    #_client_repo: ClientRepo
+    #_uow: UnitOfWork
     #_id_generator: IDGeneratingService
     +handle(name: str) str
 }
 
 class ClientInfoHandler {
-    #_client_repo: ClientRepo
+    #_uow: UnitOfWork
     +handle(client_id: str) Client
 }
 
 class ClientListHandler {
-    #_client_repo: ClientRepo
+    #_uow: UnitOfWork
     +handle(name: str) list~Client~
 }
 
-ClientCreateHandler --> ClientRepo
+ClientCreateHandler --> UnitOfWork
 ClientCreateHandler --> IDGeneratingService
-ClientInfoHandler --> ClientRepo
-ClientListHandler --> ClientRepo
+ClientInfoHandler --> UnitOfWork
+ClientListHandler --> UnitOfWork
 ```

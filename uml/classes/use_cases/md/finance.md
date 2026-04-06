@@ -6,34 +6,34 @@ config:
 
 classDiagram
     direction LR
-    class FinanceRepo {
+    class UnitOfWork {
         <<Interface>>
     }
 
     class FinanceInvestHandler {
-        #_finance_repo: FinanceRepo
+        #_uow:: UnitOfWork
         +handle(amount: Money, account_id: UUID, message: str) None
     }
 
     class FinanceStatsHandler {
-        #_finance_repo: FinanceRepo
+        #_uow:: UnitOfWork
         +handle(account_id: UUID, start_date: datetime, end_date: datetime) dict~str, Any~
     }
 
     class FinanceHistoryHandler {
-        #_finance_repo: FinanceRepo
+        #_uow:: UnitOfWork
         +handle(account_id: UUID, limit: int) list~Transaction~
     }
 
     class FinanceSetPrimaryHandler {
-        #_finance_repo: FinanceRepo
+        #_uow:: UnitOfWork
         +handle(account_id: UUID) None
     }
 
-    FinanceInvestHandler --> FinanceRepo
-    FinanceStatsHandler --> FinanceRepo
+    FinanceInvestHandler --> UnitOfWork
+    FinanceStatsHandler --> UnitOfWork
 
-    FinanceRepo <-- FinanceHistoryHandler
-    FinanceRepo <-- FinanceSetPrimaryHandler
+    UnitOfWork <-- FinanceHistoryHandler
+    UnitOfWork <-- FinanceSetPrimaryHandler
 
 ```

@@ -6,10 +6,7 @@ config:
 
 classDiagram
     direction LR
-    class CafeRepo {
-    }
-
-    class FinanceRepo {
+    class UnitOfWork {
         <<Interface>>
     }
 
@@ -50,8 +47,7 @@ classDiagram
     }
 
     class CafeInitHandler {
-        #_cafe_repo: CafeRepo
-        #_finance_repo: FinanceRepo
+        #_uow: UnitOfWork
         +handle(name: str, address: str, startup_capital: Money) None
     }
 
@@ -60,6 +56,5 @@ classDiagram
     CafeRemoveHandler --> EnvironmentManager
     CafeActivateHandler --> EnvironmentManager
     CafeDeactivateHandler --> EnvironmentManager
-    CafeInitHandler --> CafeRepo
-    CafeInitHandler --> FinanceRepo
+    CafeInitHandler --> UnitOfWork
 ```

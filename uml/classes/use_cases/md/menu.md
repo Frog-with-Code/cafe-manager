@@ -6,39 +6,33 @@ config:
 
 classDiagram
     direction LR
-    class InventoryRepo {
-        <<Interface>>
-    }
-
-    class MenuRepo {
+    class UnitOfWork {
         <<Interface>>
     }
 
     class MenuInfoHandler {
-        #_menu_repo: MenuRepo
+        #_menu_repo: UnitOfWork
         +handle() dict~MenuItemType, list~MenuItem~~
     }
 
     class MenuAddItemHandler {
-        #_menu_repo: MenuRepo
-        #_inventory_repo: InventoryRepo
+        #_menu_repo: UnitOfWork
         +handle(name: str, price: Money, category: MenuItemCategory, ingredients_data: dict~str, float~, overwrite: bool)
     }
 
     class MenuItemRemoveHandler {
-        #_menu_repo: MenuRepo
+        #_menu_repo: UnitOfWork
         +handle(name: str)
     }
 
     class MenuListIngredientsHandler {
-        #_menu_repo: MenuRepo
+        #_menu_repo: UnitOfWork
         +handle(name: str) dict~Ingredient, float~
     }
 
-    MenuInfoHandler --> MenuRepo
-    MenuAddItemHandler --> MenuRepo
-    MenuAddItemHandler --> InventoryRepo
+    MenuInfoHandler --> UnitOfWork
+    MenuAddItemHandler --> UnitOfWork
 
-    MenuRepo <-- MenuItemRemoveHandler
-    MenuRepo <-- MenuListIngredientsHandler
+    UnitOfWork <-- MenuItemRemoveHandler
+    UnitOfWork <-- MenuListIngredientsHandler
 ```
