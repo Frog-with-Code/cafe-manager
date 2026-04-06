@@ -3,12 +3,7 @@ from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.entities.people import Employee
 from cafe_manager.domain.services import IngredientCalculator
 
-from cafe_manager.application.interfaces import (
-    CoffeeMachineRepo,
-    EmployeeRepo,
-    InventoryRepo,
-    OrderRepo,
-)
+from cafe_manager.application.interfaces import UnitOfWork
 
 from cafe_manager.common.exceptions import (
     CoffeeMachineNotFoundError,
@@ -19,29 +14,20 @@ from cafe_manager.common.exceptions import (
 
 
 class KitchenStartHandler:
-    def __init__(
-        self,
-        order_repo: OrderRepo,
-        employee_repo: EmployeeRepo,
-        inventory_repo: InventoryRepo,
-        machine_repo: CoffeeMachineRepo,
-        ingredient_calculator: IngredientCalculator,
-    ) -> None:
-        self._order_repo = order_repo
-        self._employee_repo = employee_repo
-        self._inventory_repo = inventory_repo
-        self._machine_repo = machine_repo
-
+    def __init__(self, uow: UnitOfWork, ingredient_calculator: IngredientCalculator):
+        self._uow = uow
         self._ingredient_calculator = ingredient_calculator
 
-    def _start_coffee_machine(self, order: Order) -> tuple[CoffeeMachine | None, Order]:
+    def _start_coffee_machine(
+        self, uow: UnitOfWork, order: Order
+    ) -> tuple[CoffeeMachine | None, Order]:
         needs_coffee_machine = any(
             item.requires_coffee_machine for item in order.items.keys()
         )
 
         machine = None
         if needs_coffee_machine:
-            machine = self._machine_repo.get_free()
+            machine = uow.machine_repo.get_free()
             if machine is None:
                 raise KitchenOverloadError("All coffee-machines are busy")
 
@@ -50,11 +36,11 @@ class KitchenStartHandler:
 
         return machine, order
 
-    def _get_employee(self, employee_id: str | None) -> Employee:
+    def _get_employee(self, uow: UnitOfWork, employee_id: str | None) -> Employee:
         employee = (
-            self._employee_repo.get_by_id(employee_id)
+            uow.employee_repo.get_by_id(employee_id)
             if employee_id
-            else self._employee_repo.get_most_free()
+            else uow.employee_repo.get_most_free()
         )
 
         if employee is None:
@@ -70,49 +56,51 @@ class KitchenStartHandler:
     def handle(
         self, employee_id: str | None
     ) -> tuple[str, str | None, int | None] | tuple[None, ...]:
-        order = self._order_repo.get_oldest_paid()
+        with self._uow as uow:
+            order = uow.order_repo.get_oldest_paid()
 
-        if order is None:
-            return (None,) * 3
+            if order is None:
+                return (None,) * 3
 
-        employee = self._get_employee(employee_id)
+            employee = self._get_employee(uow, employee_id)
 
-        menu_items = order.items
-        required_ingredients = self._ingredient_calculator.calculate(menu_items)
+            menu_items = order.items
+            required_ingredients = self._ingredient_calculator.calculate(menu_items)
 
-        employee.work()
-        order.start_cooking(employee.employee_id)
+            employee.work()
+            order.start_cooking(employee.employee_id)
 
-        machine, order = self._start_coffee_machine(order)
+            machine, order = self._start_coffee_machine(uow, order)
 
-        if machine is not None:
-            self._machine_repo.save(machine)
-        self._inventory_repo.withdraw(required_ingredients)
-        self._order_repo.save(order)
-        self._employee_repo.save(employee)
+            if machine is not None:
+                uow.machine_repo.save(machine)
+            uow.inventory_repo.withdraw(required_ingredients)
+            uow.order_repo.save(order)
+            uow.employee_repo.save(employee)
 
-        return order.order_id, order.employee_id, order.machine_id
+            return order.order_id, order.employee_id, order.machine_id
 
 
 class KitchenListPending:
-    def __init__(self, order_repo: OrderRepo) -> None:
-        self._order_repo = order_repo
+    def __init__(self, uow: UnitOfWork) -> None:
+        self._uow = uow
 
     def handle(self) -> list[Order]:
-        paid_orders = self._order_repo.get_paid_from_oldest()
-
-        return paid_orders if paid_orders else []
+        with self._uow as uow:
+            paid_orders = uow.order_repo.get_paid_from_oldest()
+            return paid_orders if paid_orders else []
 
 
 class KitchenReadyHandler:
-    def __init__(self, order_repo: OrderRepo, machine_repo: CoffeeMachineRepo) -> None:
-        self._order_repo = order_repo
-        self._machine_repo = machine_repo
+    def __init__(self, uow: UnitOfWork) -> None:
+        self._uow = uow
 
-    def _stop_coffee_machine(self, machine_id: int | None) -> CoffeeMachine | None:
+    def _stop_coffee_machine(
+        self, uow: UnitOfWork, machine_id: int | None
+    ) -> CoffeeMachine | None:
         machine = None
         if machine_id:
-            machine = self._machine_repo.get_by_id(machine_id)
+            machine = uow.machine_repo.get_by_id(machine_id)
             if machine is None:
                 raise CoffeeMachineNotFoundError(
                     f"Coffee-machine with ID {machine_id} was not found"
@@ -122,14 +110,15 @@ class KitchenReadyHandler:
         return machine
 
     def handle(self, order_id: str) -> None:
-        order = self._order_repo.get_by_id(order_id)
-        if order is None:
-            raise OrderNotFoundError(f"Order with ID {order_id} was not found")
+        with self._uow as uow:
+            order = uow.order_repo.get_by_id(order_id)
+            if order is None:
+                raise OrderNotFoundError(f"Order with ID {order_id} was not found")
 
-        order.end_cooking()
+            order.end_cooking()
 
-        machine = self._stop_coffee_machine(order.machine_id)
+            machine = self._stop_coffee_machine(uow, order.machine_id)
 
-        self._order_repo.save(order)
-        if machine:
-            self._machine_repo.save(machine)
+            uow.order_repo.save(order)
+            if machine:
+                uow.machine_repo.save(machine)

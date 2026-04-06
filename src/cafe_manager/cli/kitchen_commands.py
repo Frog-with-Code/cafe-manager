@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .styles import print_success, print_table, print_warning
 
 from cafe_manager.domain.services import IngredientCalculator
@@ -15,13 +15,6 @@ from cafe_manager.application.use_cases.kitchen_handlers import (
     KitchenStartHandler,
 )
 
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteCoffeeMachineRepo,
-    SQLiteInventoryRepo,
-    SQLiteOrderRepo,
-    SQLiteEmployeeRepo,
-)
-
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     EmployeeNotFoundError,
@@ -30,7 +23,10 @@ from cafe_manager.common.exceptions import (
     OrderStateError,
 )
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context,
+    help="Kitchen operations, cooking queue, and order fulfillment",
+)
 
 
 @app.command("list-pending")
@@ -41,9 +37,8 @@ def show_list_pending(
     ] = False,
 ):
     """Shows query of paid orders"""
-    env_path = get_env_path(ctx)
-    order_repo = SQLiteOrderRepo(env_path)
-    handler = KitchenListPending(order_repo)
+    uow = get_uow(ctx)
+    handler = KitchenListPending(uow)
 
     orders = handler.handle()
 
@@ -85,17 +80,10 @@ def start(
     ] = None,
 ):
     """Start cooking oldest paid order"""
-    env_path = get_env_path(ctx)
-    order_repo = SQLiteOrderRepo(env_path)
-    employee_repo = SQLiteEmployeeRepo(env_path)
-    inventory_repo = SQLiteInventoryRepo(env_path)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
+    uow = get_uow(ctx)
     ingredient_calculator = IngredientCalculator()
     handler = KitchenStartHandler(
-        order_repo=order_repo,
-        employee_repo=employee_repo,
-        inventory_repo=inventory_repo,
-        machine_repo=machine_repo,
+        uow=uow,
         ingredient_calculator=ingredient_calculator,
     )
 
@@ -122,10 +110,8 @@ def complete(
     ],
 ):
     """Complete order in progress"""
-    env_path = get_env_path(ctx)
-    order_repo = SQLiteOrderRepo(env_path)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
-    handler = KitchenReadyHandler(order_repo, machine_repo)
+    uow = get_uow(ctx)
+    handler = KitchenReadyHandler(uow)
 
     try:
         handler.handle(order_id)

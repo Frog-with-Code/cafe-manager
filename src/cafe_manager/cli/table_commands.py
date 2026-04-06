@@ -6,7 +6,7 @@ from rich.table import Table as RichTable
 
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .styles import print_success, print_table
 
 from cafe_manager.domain.services import SeatingService
@@ -18,13 +18,6 @@ from cafe_manager.application.use_cases.table_handlers import (
     TableFreeHandler,
     TableInfoHandler,
     TableReserveHandler,
-)
-
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteChairRepo,
-    SQLiteTableRepo,
-    SQLiteFinanceRepo,
-    SQLiteOrderRepo,
 )
 
 from cafe_manager.common.exceptions import (
@@ -40,7 +33,9 @@ from cafe_manager.common.exceptions import (
 )
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Manage cafe tables, reservations, and seating capacity"
+)
 
 
 @app.command()
@@ -76,10 +71,8 @@ def buy(
     ] = None,
 ):
     """Buy new n-seats table"""
-    env_path = get_env_path(ctx)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    table_repo = SQLiteTableRepo(env_path)
-    handler = TableBuyHandler(finance_repo=finance_repo, table_repo=table_repo)
+    uow = get_uow(ctx)
+    handler = TableBuyHandler(uow)
 
     try:
         handler.handle(price=price, seats=seats, account_id=account_id)
@@ -111,10 +104,8 @@ def discard(
     ] = True,
 ):
     """Discard table by its ID"""
-    env_path = get_env_path(ctx)
-    table_repo = SQLiteTableRepo(env_path)
-    chair_repo = SQLiteChairRepo(env_path)
-    handler = TableDiscardHandler(table_repo, chair_repo)
+    uow = get_uow(ctx)
+    handler = TableDiscardHandler(uow)
 
     try:
         handler.handle(table_id)
@@ -132,9 +123,8 @@ def info(
     ] = False,
 ) -> None:
     """Show info about tables"""
-    env_path = get_env_path(ctx)
-    table_repo = SQLiteTableRepo(env_path)
-    handler = TableInfoHandler(table_repo)
+    uow = get_uow(ctx)
+    handler = TableInfoHandler(uow)
 
     tables = handler.handle()
 
@@ -169,11 +159,9 @@ def reserve(
     ],
 ):
     """Reserve table"""
-    env_path = get_env_path(ctx)
-    table_repo = SQLiteTableRepo(env_path)
-    chair_repo = SQLiteChairRepo(env_path)
+    uow = get_uow(ctx)
     seating_service = SeatingService()
-    handler = TableReserveHandler(table_repo, chair_repo, seating_service)
+    handler = TableReserveHandler(uow, seating_service)
 
     try:
         table_id = handler.handle(seats)
@@ -197,13 +185,8 @@ def free(
     ],
 ):
     """Free reserved or occupied table"""
-    env_path = get_env_path(ctx)
-    table_repo = SQLiteTableRepo(env_path)
-    chair_repo = SQLiteChairRepo(env_path)
-    order_repo = SQLiteOrderRepo(env_path)
-    handler = TableFreeHandler(
-        table_repo=table_repo, chair_repo=chair_repo, order_repo=order_repo
-    )
+    uow = get_uow(ctx)
+    handler = TableFreeHandler(uow)
 
     try:
         handler.handle(table_id)
@@ -238,10 +221,8 @@ def assign_chair(
     ],
 ):
     """Assign chair to the table"""
-    env_path = get_env_path(ctx)
-    table_repo = SQLiteTableRepo(env_path)
-    chair_repo = SQLiteChairRepo(env_path)
-    handler = AssignChairToTableHandler(table_repo, chair_repo)
+    uow = get_uow(ctx)
+    handler = AssignChairToTableHandler(uow)
 
     try:
         handler.handle(table_id=table_id, chair_id=chair_id)

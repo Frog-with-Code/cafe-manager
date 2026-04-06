@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
+from cafe_manager.infrastructure.env_manager import EnvironmentManager
 
 class TestEnvironmentManager:
     @pytest.fixture

@@ -11,180 +11,149 @@ from cafe_manager.domain.entities.cafe import Cafe
 
 
 class EmployeeRepo(Protocol):
-    def get_most_free(self) -> Employee | None:
-        pass
+    def get_most_free(self) -> Employee | None: ...
 
-    def get_by_id(self, employee_id: str) -> Employee | None:
-        pass
+    def get_by_id(self, employee_id: str) -> Employee | None: ...
 
-    def save(self, employee: Employee) -> None:
-        pass
+    def save(self, employee: Employee) -> None: ...
 
-    def delete_by_id(self, employee_id: str) -> None:
-        pass
+    def delete_by_id(self, employee_id: str) -> None: ...
 
-    def get_all(self) -> list[Employee] | None:
-        pass
+    def get_all(self) -> list[Employee] | None: ...
 
 
 class FinanceRepo(Protocol):
-    def get_by_id(self, account_id: UUID) -> Account | None:
-        pass
+    def get_by_id(self, account_id: UUID) -> Account | None: ...
 
-    def save(self, account: Account) -> None:
-        pass
+    def save(self, account: Account) -> None: ...
 
-    def set_primary(self, account_id: UUID) -> None:
-        pass
+    def set_primary(self, account_id: UUID) -> None: ...
 
-    def get_primary(self) -> Account | None:
-        pass
+    def get_primary(self) -> Account | None: ...
 
     def get_transactions_by_period(
         self, account_id: UUID, start_date: datetime | None, end_date: datetime | None
-    ) -> list[Transaction] | None:
-        pass
+    ) -> list[Transaction] | None: ...
 
     def get_latest_transactions(
         self, account_id: UUID, limit: int
-    ) -> list[Transaction] | None:
-        pass
+    ) -> list[Transaction] | None: ...
 
 
 class TableRepo(Protocol):
-    def get_all(self) -> list[Table] | None:
-        pass
+    def get_all(self) -> list[Table] | None: ...
 
-    def get_by_id(self, table_id: int) -> Table | None:
-        pass
+    def get_by_id(self, table_id: int) -> Table | None: ...
 
-    def save(self, table: Table) -> None:
-        pass
+    def save(self, table: Table) -> None: ...
 
-    def save_many(self, tables: list[Table]) -> None:
-        pass
+    def save_many(self, tables: list[Table]) -> None: ...
 
-    def delete_by_id(self, table_id: int) -> None:
-        pass
+    def delete_by_id(self, table_id: int) -> None: ...
 
 
 class ChairRepo(Protocol):
-    def get_free(self) -> list[Chair] | None:
-        pass
+    def get_free(self) -> list[Chair] | None: ...
 
-    def get_by_id(self, chair_id: int) -> Chair | None:
-        pass
+    def get_by_id(self, chair_id: int) -> Chair | None: ...
 
-    def get_busy_by_table_id(self, table_id: int) -> list[Chair] | None:
-        pass
+    def get_busy_by_table_id(self, table_id: int) -> list[Chair] | None: ...
 
-    def save(self, chair: Chair) -> None:
-        pass
+    def save(self, chair: Chair) -> None: ...
 
-    def save_many(self, chairs: list[Chair]) -> None:
-        pass
+    def save_many(self, chairs: list[Chair]) -> None: ...
 
-    def delete_by_id(self, chair_id: int) -> None:
-        pass
+    def delete_by_id(self, chair_id: int) -> None: ...
 
-    def delete_table_by_id(self, table_id: int) -> None:
-        pass
+    def delete_table_by_id(self, table_id: int) -> None: ...
 
-    def get_all(self) -> list[Chair] | None:
-        pass
+    def get_all(self) -> list[Chair] | None: ...
 
 
 class InventoryRepo(Protocol):
-    def get_by_names(self, names: set[str]) -> dict[Ingredient, float] | None:
-        pass
+    def get_by_names(self, names: set[str]) -> dict[Ingredient, float] | None: ...
 
-    def save_many(self, inventory: dict[Ingredient, float]) -> None:
-        pass
+    def save_many(self, inventory: dict[Ingredient, float]) -> None: ...
 
-    def delete_by_name(self, name: str) -> None:
-        pass
+    def delete_by_name(self, name: str) -> None: ...
 
-    def get_all(self) -> dict[Ingredient, float] | None:
-        pass
+    def get_all(self) -> dict[Ingredient, float] | None: ...
 
-    def add_ingredient_by_name(self, name: str, amount: float) -> None:
-        pass
+    def add_ingredient_by_name(self, name: str, amount: float) -> None: ...
 
-    def get_free_by_name(self, name: str) -> float | None:
-        pass
+    def get_free_by_name(self, name: str) -> float | None: ...
 
-    def reserve(self, ingredients: dict[Ingredient, float]) -> None:
-        pass
+    def reserve(self, ingredients: dict[Ingredient, float]) -> None: ...
 
-    def withdraw(self, ingredients: dict[Ingredient, float]) -> None:
-        pass
+    def withdraw(self, ingredients: dict[Ingredient, float]) -> None: ...
 
 
 class OrderRepo(Protocol):
-    def get_by_id(self, order_id: str) -> Order | None:
-        pass
+    def get_by_id(self, order_id: str) -> Order | None: ...
 
-    def get_oldest_paid(self) -> Order | None:
-        pass
+    def get_oldest_paid(self) -> Order | None: ...
 
-    def get_paid_from_oldest(self) -> list[Order] | None:
-        pass
+    def get_paid_from_oldest(self) -> list[Order] | None: ...
 
-    def get_active_by_table_id(self, table_id: int) -> list[Order] | None:
-        pass
+    def get_active_by_table_id(self, table_id: int) -> list[Order] | None: ...
 
-    def get_all_active(self) -> list[Order] | None:
-        pass
+    def get_all_active(self) -> list[Order] | None: ...
 
-    def save(self, order: Order) -> None:
-        pass
+    def save(self, order: Order) -> None: ...
 
 
 class CoffeeMachineRepo(Protocol):
-    def get_free(self) -> CoffeeMachine | None:
-        pass
+    def get_free(self) -> CoffeeMachine | None: ...
 
-    def save(self, machine: CoffeeMachine) -> None:
-        pass
+    def save(self, machine: CoffeeMachine) -> None: ...
 
-    def get_by_id(self, machine_id: int) -> CoffeeMachine | None:
-        pass
+    def get_by_id(self, machine_id: int) -> CoffeeMachine | None: ...
 
-    def get_all(self) -> list[CoffeeMachine] | None:
-        pass
+    def get_all(self) -> list[CoffeeMachine] | None: ...
 
-    def delete_by_id(self, machine_id: int) -> list[CoffeeMachine] | None:
-        pass
+    def delete_by_id(self, machine_id: int) -> list[CoffeeMachine] | None: ...
 
 
 class MenuRepo(Protocol):
-    def get_by_name(self, name: str) -> MenuItem | None:
-        pass
+    def get_by_name(self, name: str) -> MenuItem | None: ...
 
-    def get_all(self) -> set[MenuItem] | None:
-        pass
+    def get_all(self) -> set[MenuItem] | None: ...
 
-    def save(self, item: MenuItem) -> None:
-        pass
+    def save(self, item: MenuItem) -> None: ...
 
-    def delete_by_name(self, name: str) -> None:
-        pass
+    def delete_by_name(self, name: str) -> None: ...
 
 
 class ClientRepo(Protocol):
-    def get_by_id(self, client_id: str) -> Client | None:
-        pass
-    
-    def get_by_name(self, name: str) -> list[Client] | None:
-        pass
+    def get_by_id(self, client_id: str) -> Client | None: ...
 
-    def save(self, client: Client) -> None:
-        pass
+    def get_by_name(self, name: str) -> list[Client] | None: ...
+
+    def save(self, client: Client) -> None: ...
 
 
 class CafeRepo(Protocol):
-    def get(self) -> Cafe | None:
-        pass
+    def get(self) -> Cafe | None: ...
 
-    def save(self, cafe: Cafe) -> None:
-        pass
+    def save(self, cafe: Cafe) -> None: ...
+
+
+class UnitOfWork(Protocol):
+    cafe_repo: CafeRepo
+    order_repo: OrderRepo
+    inventory_repo: InventoryRepo
+    menu_repo: MenuRepo
+    table_repo: TableRepo
+    chair_repo: ChairRepo
+    finance_repo: FinanceRepo
+    employee_repo: EmployeeRepo
+    client_repo: ClientRepo
+    machine_repo: CoffeeMachineRepo
+
+    def __enter__(self) -> "UnitOfWork": ...
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None: ...
+
+    def commit(self) -> None: ...
+
+    def rollback(self) -> None: ...

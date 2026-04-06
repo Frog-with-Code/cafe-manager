@@ -3,7 +3,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .styles import print_info, print_success, print_table
 
 from cafe_manager.domain.services import IDGeneratingService
@@ -14,12 +14,12 @@ from cafe_manager.application.use_cases.client_handlers import (
     ClientListHandler,
 )
 
-from cafe_manager.infrastructure.sqlite.repositories import SQLiteClientRepo
-
 from cafe_manager.common.exceptions import CLIBusinessError, ClientNotFoundError
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Manage client profiles and track their spending"
+)
 
 
 @app.command()
@@ -28,10 +28,9 @@ def create(
     name: Annotated[str, typer.Option("--name", "-n", help="Name of the client")],
 ) -> None:
     """Create new client account"""
-    env_path = get_env_path(ctx)
-    client_repo = SQLiteClientRepo(env_path)
+    uow = get_uow(ctx)
     id_generator = IDGeneratingService()
-    handler = ClientCreateHandler(client_repo, id_generator)
+    handler = ClientCreateHandler(uow, id_generator)
 
     try:
         client_id = handler.handle(name)
@@ -49,9 +48,8 @@ def info(
     ],
 ):
     """Show info about the client"""
-    env_path = get_env_path(ctx)
-    client_repo = SQLiteClientRepo(env_path)
-    handler = ClientInfoHandler(client_repo)
+    uow = get_uow(ctx)
+    handler = ClientInfoHandler(uow)
 
     try:
         client = handler.handle(client_id)
@@ -75,9 +73,8 @@ def list_by_name(
     ],
 ):
     """Show list of clients by their name"""
-    env_path = get_env_path(ctx)
-    client_repo = SQLiteClientRepo(env_path)
-    handler = ClientListHandler(client_repo)
+    uow = get_uow(ctx)
+    handler = ClientListHandler(uow)
 
     clients = handler.handle(name)
 

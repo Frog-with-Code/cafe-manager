@@ -16,17 +16,21 @@ class TestClientCreateHandler:
         client_repo = MagicMock(spec=ClientRepo)
         id_generator = MagicMock(spec=IDGeneratingService)
         id_generator.max_attempts = 100
-        
-        return client_repo, id_generator
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.client_repo = client_repo
+
+        return uow, client_repo, id_generator
 
     def test_handle_success(self, mock_deps):
-        client_repo, id_generator = mock_deps
+        uow, client_repo, id_generator = mock_deps
         generated_id = "cli-UNIQUE"
         
         id_generator.generate_unique_code.return_value = generated_id
         client_repo.get_by_id.return_value = None  # No collision
         
-        handler = ClientCreateHandler(client_repo, id_generator)
+        handler = ClientCreateHandler(uow, id_generator)
         result_id = handler.handle("John Doe")
         
         assert result_id == generated_id
@@ -37,13 +41,13 @@ class TestClientCreateHandler:
         assert saved_client.client_id == generated_id
 
     def test_handle_with_collision_retry(self, mock_deps):
-        client_repo, id_generator = mock_deps
+        uow, client_repo, id_generator = mock_deps
         
         # First ID exists, second is unique
         id_generator.generate_unique_code.side_effect = ["cli-EXIST", "cli-NEW"]
         client_repo.get_by_id.side_effect = [MagicMock(spec=Client), None]
         
-        handler = ClientCreateHandler(client_repo, id_generator)
+        handler = ClientCreateHandler(uow, id_generator)
         result_id = handler.handle("Jane Doe")
         
         assert result_id == "cli-NEW"
@@ -60,8 +64,12 @@ class TestClientInfoHandler:
         client_id = "cli-123"
         expected_client = Client(client_id, "Bob")
         mock_repo.get_by_id.return_value = expected_client
-        
-        handler = ClientInfoHandler(mock_repo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.client_repo = mock_repo
+
+        handler = ClientInfoHandler(uow)
         result = handler.handle(client_id)
         
         assert result == expected_client
@@ -69,7 +77,11 @@ class TestClientInfoHandler:
 
     def test_handle_not_found(self, mock_repo):
         mock_repo.get_by_id.return_value = None
-        
-        handler = ClientInfoHandler(mock_repo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.client_repo = mock_repo
+
+        handler = ClientInfoHandler(uow)
         with pytest.raises(ClientNotFoundError):
             handler.handle("non-existent-id")

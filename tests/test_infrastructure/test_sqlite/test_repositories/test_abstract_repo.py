@@ -1,10 +1,8 @@
 import pytest
 import sqlite3
-import json
 from uuid import UUID, uuid4
 from datetime import datetime
 from decimal import Decimal
-from pathlib import Path
 from cafe_manager.domain.entities.menu import Ingredient, Unit
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.infrastructure.sqlite.repositories.abstract_repo import (
@@ -39,7 +37,9 @@ class TestSqliteAdapters:
         db_path = tmp_path / "test_adapters.db"
         conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row
-        return conn
+        
+        yield conn
+        conn.close()
 
     def test_set_adapter_converter(self, db_conn):
         db_conn.execute("CREATE TABLE test_set (data 'SET')")
@@ -81,31 +81,29 @@ class TestSqliteAdapters:
 class TestAbstractSqliteRepo:
     class MockRepo(AbstractSQliteRepo):
         def _init_db(self) -> None:
-            with self._get_connection() as conn:
-                conn.execute("CREATE TABLE mock (id INTEGER PRIMARY KEY)")
+            self._conn.execute("CREATE TABLE IF NOT EXISTS mock (id INTEGER PRIMARY KEY)")
 
         def _convert_to_entity(self, row: sqlite3.Row):
             return row["id"]
 
     def test_abstract_repo_initialization(self, tmp_path):
         db_path = tmp_path / "mock.db"
-        repo = self.MockRepo(db_path)
+        conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        conn.row_factory = sqlite3.Row
+        repo = self.MockRepo(conn)
 
-        assert db_path.exists()
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='mock'"
-            )
-            assert cursor.fetchone() is not None
-
-    def test_get_connection_config(self, tmp_path):
-        repo = self.MockRepo(tmp_path / "mock.db")
-        conn = repo._get_connection()
-
-        assert conn.row_factory == sqlite3.Row
-        assert isinstance(conn, sqlite3.Connection)
+        assert repo._conn is conn
+        assert isinstance(repo._conn, sqlite3.Connection)
         conn.close()
 
-    def test_db_path_conversion(self, tmp_path):
-        repo = self.MockRepo(str(tmp_path / "string_path.db"))
-        assert isinstance(repo.db_path, Path)
+    def test_uses_passed_connection(self, tmp_path):
+        db_path = tmp_path / "mock.db"
+        conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        conn.row_factory = sqlite3.Row
+        repo = self.MockRepo(conn)
+
+        repo._conn.execute("INSERT INTO mock (id) VALUES (1)")
+        row = repo._conn.execute("SELECT id FROM mock").fetchone()
+
+        assert repo._convert_to_entity(row) == 1
+        conn.close()

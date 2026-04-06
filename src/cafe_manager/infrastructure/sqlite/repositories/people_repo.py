@@ -5,13 +5,12 @@ from cafe_manager.domain.entities.people import *
 
 
 class SQLiteEmployeeRepo(AbstractSQliteRepo, EmployeeRepo):
-    def __init__(self, db_path: Path | str):
-        super().__init__(db_path)
+    def __init__(self, connection: sqlite3.Connection):
+        super().__init__(connection)
 
     def _init_db(self) -> None:
-        with self._get_connection() as conn:
-            conn.execute(
-                """
+        self._conn.execute(
+            """
                 CREATE TABLE IF NOT EXISTS employees (
                     id TEXT PRIMARY KEY,
                     name TEXT,
@@ -19,8 +18,7 @@ class SQLiteEmployeeRepo(AbstractSQliteRepo, EmployeeRepo):
                     rest_start DATETIME
                 )
             """
-            )
-            conn.commit()
+        )
 
     def _convert_to_entity(self, row: sqlite3.Row) -> Employee:
         return Employee(
@@ -31,71 +29,65 @@ class SQLiteEmployeeRepo(AbstractSQliteRepo, EmployeeRepo):
         )
 
     def get_most_free(self) -> Employee | None:
-        with self._get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM employees WHERE state = 'free' ORDER BY rest_start ASC"
-            ).fetchone()
+        row = self._conn.execute(
+            "SELECT * FROM employees WHERE state = 'free' ORDER BY rest_start ASC"
+        ).fetchone()
 
-            if not row:
-                return None
+        if not row:
+            return None
 
-            return self._convert_to_entity(row)
+        return self._convert_to_entity(row)
 
     def get_by_id(self, employee_id: str) -> Employee | None:
-        with self._get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM employees WHERE id = ?",
-                (employee_id,),
-            ).fetchone()
+        row = self._conn.execute(
+            "SELECT * FROM employees WHERE id = ?",
+            (employee_id,),
+        ).fetchone()
 
-            if not row:
-                return None
+        if not row:
+            return None
 
-            return self._convert_to_entity(row)
+        return self._convert_to_entity(row)
 
     def save(self, employee: Employee) -> None:
-        with self._get_connection() as conn:
-            conn.execute(
-                """INSERT INTO employees (id, name, state, rest_start) 
+        self._conn.execute(
+            """INSERT INTO employees (id, name, state, rest_start) 
                 VALUES(?, ?, ?, ?) 
                 ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 state = excluded.state,
                 rest_start = excluded.rest_start
                 """,
-                (
-                    employee.employee_id,
-                    employee.name,
-                    str(employee._state),
-                    employee.rest_start,
-                ),
-            )
-            conn.commit()
+            (
+                employee.employee_id,
+                employee.name,
+                str(employee._state),
+                employee.rest_start,
+            ),
+        )
+        self._conn.commit()
 
     def delete_by_id(self, employee_id: str) -> None:
-        with self._get_connection() as conn:
-            conn.execute("DELETE FROM employees WHERE id = ?", (employee_id,))
-            conn.commit()
+        self._conn.execute("DELETE FROM employees WHERE id = ?", (employee_id,))
+        self._conn.commit()
 
     def get_all(self) -> list[Employee] | None:
-        with self._get_connection() as conn:
-            rows = conn.execute("SELECT * from employees")
+        rows = self._conn.execute("SELECT * from employees")
 
-            if not rows:
-                return None
+        if not rows:
+            return None
 
-            employees = [self._convert_to_entity(row) for row in rows]
-            return employees
+        employees = [self._convert_to_entity(row) for row in rows]
+        return employees
 
 
 class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
-    def __init__(self, db_path: Path | str):
-        super().__init__(db_path)
+    def __init__(self, connection: sqlite3.Connection):
+        super().__init__(connection)
 
     def _init_db(self) -> None:
-        with self._get_connection() as conn:
-            conn.execute(
-                """
+        self._conn.execute(
+            """
                 CREATE TABLE IF NOT EXISTS clients (
                     id TEXT PRIMARY KEY,
                     name TEXT,
@@ -104,45 +96,42 @@ class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
                     registered_at DATETIME
                 )
                 """
-            )
-            conn.commit()
+        )
+        self._conn.commit()
 
     def _convert_to_entity(self, row: sqlite3.Row) -> Client:
         return Client(
             client_id=row["id"],
-            name=row['name'],
+            name=row["name"],
             total_spent=row["total_spent"],
             orders_amount=row["orders_amount"],
             registered_at=row["registered_at"],
         )
 
     def get_by_id(self, client_id: str) -> Client | None:
-        with self._get_connection() as conn:
-            row = conn.execute(
-                "SELECT * from clients WHERE id = ?", (client_id,)
-            ).fetchone()
+        row = self._conn.execute(
+            "SELECT * from clients WHERE id = ?", (client_id,)
+        ).fetchone()
 
-            if not row:
-                return None
+        if not row:
+            return None
 
-            return self._convert_to_entity(row)
-        
+        return self._convert_to_entity(row)
+
     def get_by_name(self, name: str) -> list[Client] | None:
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * from clients WHERE name = ?", (name,)
-            ).fetchall()
+        rows = self._conn.execute(
+            "SELECT * from clients WHERE name = ?", (name,)
+        ).fetchall()
 
-            if not rows:
-                return None
+        if not rows:
+            return None
 
-            rows = [self._convert_to_entity(row) for row in rows]
-            return rows
+        rows = [self._convert_to_entity(row) for row in rows]
+        return rows
 
     def save(self, client: Client) -> None:
-        with self._get_connection() as conn:
-            conn.execute(
-                """
+        self._conn.execute(
+            """
                 INSERT INTO clients (id, name, total_spent, orders_amount, registered_at)
                 VALUES(?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
@@ -151,12 +140,12 @@ class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
                 orders_amount = excluded.orders_amount, 
                 registered_at = excluded.registered_at
                 """,
-                (
-                    client.client_id,
-                    client.name,
-                    client.total_spent,
-                    client.orders_amount,
-                    client.registered_at,
-                ),
-            )
-            conn.commit()
+            (
+                client.client_id,
+                client.name,
+                client.total_spent,
+                client.orders_amount,
+                client.registered_at,
+            ),
+        )
+        self._conn.commit()

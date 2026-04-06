@@ -14,16 +14,7 @@ from cafe_manager.domain.services import (
     PaymentService,
 )
 
-from cafe_manager.application.interfaces import (
-    ChairRepo,
-    ClientRepo,
-    EmployeeRepo,
-    FinanceRepo,
-    InventoryRepo,
-    MenuRepo,
-    OrderRepo,
-    TableRepo,
-)
+from cafe_manager.application.interfaces import UnitOfWork
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
@@ -43,27 +34,20 @@ from cafe_manager.common.exceptions import (
 class OrderCreateHandler:
     def __init__(
         self,
-        order_repo: OrderRepo,
-        inventory_repo: InventoryRepo,
-        menu_repo: MenuRepo,
-        table_repo: TableRepo,
-        chair_repo: ChairRepo,
+        uow: UnitOfWork,
         ingredient_calculator: IngredientCalculator,
         id_generator: IDGeneratingService,
     ) -> None:
-        self._order_repo = order_repo
-        self._inventory_repo = inventory_repo
-        self._menu_repo = menu_repo
-        self._table_repo = table_repo
-        self._chair_repo = chair_repo
-
+        self._uow = uow
         self._ingredient_calculator = ingredient_calculator
         self._id_generator = id_generator
 
-    def _resolve_items(self, ordered: list[tuple[str, int]]) -> dict[MenuItem, int]:
+    def _resolve_items(
+        self, uow: UnitOfWork, ordered: list[tuple[str, int]]
+    ) -> dict[MenuItem, int]:
         items = {}
         for item_name, amount in ordered:
-            item = self._menu_repo.get_by_name(item_name)
+            item = uow.menu_repo.get_by_name(item_name)
 
             if item is None:
                 raise MenuItemNotFoundError(
@@ -79,13 +63,13 @@ class OrderCreateHandler:
         return items
 
     def _occupy_table(
-        self, table_id: int, continue_session: bool
+        self, uow: UnitOfWork, table_id: int, continue_session: bool
     ) -> tuple[Table, list[Chair]]:
-        table = self._table_repo.get_by_id(table_id)
+        table = uow.table_repo.get_by_id(table_id)
 
         if table is None:
             raise TableNotFoundError(f"Table with ID {table} was not found")
-        chairs = self._chair_repo.get_busy_by_table_id(table_id) or []
+        chairs = uow.chair_repo.get_busy_by_table_id(table_id) or []
 
         if continue_session:
             if table._state != TableState.OCCUPIED:
@@ -99,21 +83,23 @@ class OrderCreateHandler:
 
         return table, chairs
 
-    def _generate_id(self) -> str:
+    def _generate_id(self, uow: UnitOfWork) -> str:
         for _ in range(self._id_generator.max_attempts):
             generated_id = self._id_generator.generate_unique_code(Order)
 
-            if self._order_repo.get_by_id(generated_id) is None:
+            if uow.order_repo.get_by_id(generated_id) is None:
                 break
         else:
             raise RuntimeError("Unique code was not generated. Try to use longer code")
 
         return generated_id
 
-    def _check_ingredients(self, ingredients_required: dict[Ingredient, float]) -> None:
+    def _check_ingredients(
+        self, uow: UnitOfWork, ingredients_required: dict[Ingredient, float]
+    ) -> None:
         for ingredient, amount in ingredients_required.items():
             name = ingredient.name
-            free_amount = self._inventory_repo.get_free_by_name(name)
+            free_amount = uow.inventory_repo.get_free_by_name(name)
 
             if free_amount is None:
                 raise IngredientNotFoundError(f"No '{name}' in the inventory")
@@ -129,38 +115,34 @@ class OrderCreateHandler:
         table_id: int | None,
         continue_session: bool,
     ) -> str:
-        items = self._resolve_items(ordered)
-        ingredients_required = self._ingredient_calculator.calculate(items)
+        with self._uow as uow:
+            items = self._resolve_items(uow, ordered)
+            ingredients_required = self._ingredient_calculator.calculate(items)
 
-        if table_id is not None:
-            table, chairs = self._occupy_table(table_id, continue_session)
+            table: Table | None = None
+            chairs: list[Chair] = []
+            if table_id is not None:
+                table, chairs = self._occupy_table(
+                    uow, table_id, continue_session
+                )
 
-        self._check_ingredients(ingredients_required)
+            self._check_ingredients(uow, ingredients_required)
 
-        generated_id = self._generate_id()
-        order = Order(order_id=generated_id, items=items, table_id=table_id)
+            generated_id = self._generate_id(uow)
+            order = Order(order_id=generated_id, items=items, table_id=table_id)
 
-        self._order_repo.save(order)
-        self._inventory_repo.reserve(ingredients_required)
-        if table_id is not None:
-            self._table_repo.save(table)  # type: ignore
-            self._chair_repo.save_many(chairs)  # type: ignore
+            uow.order_repo.save(order)
+            uow.inventory_repo.reserve(ingredients_required)
+            if table_id is not None:
+                uow.table_repo.save(table)  # type: ignore[arg-type]
+                uow.chair_repo.save_many(chairs)  # type: ignore[arg-type]
 
-        return order.order_id
+            return order.order_id
 
 
 class OrderPayHandler:
-    def __init__(
-        self,
-        order_repo: OrderRepo,
-        finance_repo: FinanceRepo,
-        client_repo: ClientRepo,
-        payment_service: PaymentService,
-    ) -> None:
-        self._order_repo = order_repo
-        self._finance_repo = finance_repo
-        self._client_repo = client_repo
-
+    def __init__(self, uow: UnitOfWork, payment_service: PaymentService) -> None:
+        self._uow = uow
         self._payment_service = payment_service
 
     def handle(
@@ -170,70 +152,81 @@ class OrderPayHandler:
         account_id: UUID | None,
         client_id: str | None,
     ) -> None:
-        order = self._order_repo.get_by_id(order_id)
-        if order is None:
-            raise OrderNotFoundError(f"Order with ID {order_id} was not found")
+        with self._uow as uow:
+            order = uow.order_repo.get_by_id(order_id)
+            if order is None:
+                raise OrderNotFoundError(
+                    f"Order with ID {order_id} was not found"
+                )
 
-        account = (
-            self._finance_repo.get_by_id(account_id)
-            if account_id
-            else self._finance_repo.get_primary()
-        )
-        if account is None:
-            raise AccountNotFoundError(f"Account with ID {account_id} was not found")
+            account = (
+                uow.finance_repo.get_by_id(account_id)
+                if account_id
+                else uow.finance_repo.get_primary()
+            )
+            if account is None:
+                raise AccountNotFoundError(
+                    f"Account with ID {account_id} was not found"
+                )
 
-        client = None
-        if client_id is not None:
-            client = self._client_repo.get_by_id(client_id)
-            if client is None:
-                raise ClientNotFoundError(f"Client with ID {client_id} was not found")
+            client = None
+            if client_id is not None:
+                client = uow.client_repo.get_by_id(client_id)
+                if client is None:
+                    raise ClientNotFoundError(
+                        f"Client with ID {client_id} was not found"
+                    )
 
-        u_order, u_account, u_client = self._payment_service.process(
-            order=order, account=account, client=client, cash_provided=cash_provided
-        )
+            u_order, u_account, u_client = self._payment_service.process(
+                order=order,
+                account=account,
+                client=client,
+                cash_provided=cash_provided,
+            )
 
-        self._order_repo.save(u_order)
-        self._finance_repo.save(u_account)
-        if u_client:
-            self._client_repo.save(u_client)
+            uow.order_repo.save(u_order)
+            uow.finance_repo.save(u_account)
+            if u_client:
+                uow.client_repo.save(u_client)
 
 
 class OrderServeHandler:
-    def __init__(
-        self,
-        order_repo: OrderRepo,
-        employee_repo: EmployeeRepo,
-    ) -> None:
-        self._order_repo = order_repo
-        self._employee_repo = employee_repo
+    def __init__(self, uow: UnitOfWork) -> None:
+        self._uow = uow
 
     def handle(self, order_id: str) -> None:
-        order = self._order_repo.get_by_id(order_id)
-        if order is None:
-            raise OrderNotFoundError(f"Order with ID {order_id} was not found")
+        with self._uow as uow:
+            order = uow.order_repo.get_by_id(order_id)
+            if order is None:
+                raise OrderNotFoundError(
+                    f"Order with ID {order_id} was not found"
+                )
 
-        order.complete()
+            order.complete()
 
-        if order.employee_id is None:
-            raise EmployeeNotAssignedError("Employee not assigned to the order")
+            if order.employee_id is None:
+                raise EmployeeNotAssignedError(
+                    "Employee not assigned to the order"
+                )
 
-        employee = self._employee_repo.get_by_id(order.employee_id)
-        if employee is None:
-            raise EmployeeNotFoundError(
-                f"Employee with ID {order.employee_id} was not found"
-            )
+            employee = uow.employee_repo.get_by_id(order.employee_id)
+            if employee is None:
+                raise EmployeeNotFoundError(
+                    f"Employee with ID {order.employee_id} was not found"
+                )
 
-        employee.rest()
+            employee.rest()
 
-        self._order_repo.save(order)
-        self._employee_repo.save(employee)
+            uow.order_repo.save(order)
+            uow.employee_repo.save(employee)
 
 
 class OrderInfoHandler:
-    def __init__(self, order_repo: OrderRepo) -> None:
-        self._order_repo = order_repo
+    def __init__(self, uow: UnitOfWork) -> None:
+        self._uow = uow
 
     def handle(self) -> list[Order]:
-        orders = self._order_repo.get_all_active()
+        with self._uow as uow:
+            orders = uow.order_repo.get_all_active()
 
-        return orders or []
+            return orders or []

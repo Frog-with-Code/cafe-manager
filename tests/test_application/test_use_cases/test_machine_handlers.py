@@ -23,14 +23,22 @@ from cafe_manager.application.interfaces import CoffeeMachineRepo, FinanceRepo
 class TestCoffeeMachineBuyHandler:
     @pytest.fixture
     def mock_deps(self):
-        return MagicMock(spec=FinanceRepo), MagicMock(spec=CoffeeMachineRepo)
+        fin_repo = MagicMock(spec=FinanceRepo)
+        machine_repo = MagicMock(spec=CoffeeMachineRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.finance_repo = fin_repo
+        uow.machine_repo = machine_repo
+
+        return uow, fin_repo, machine_repo
 
     def test_handle_success(self, mock_deps):
-        fin_repo, machine_repo = mock_deps
+        uow, fin_repo, machine_repo = mock_deps
         account = Account(balance=Money(Decimal("5000.00")))
         fin_repo.get_primary.return_value = account
         
-        handler = CoffeeMachineBuyHandler(fin_repo, machine_repo)
+        handler = CoffeeMachineBuyHandler(uow)
         price = Money(Decimal("2000.00"))
         
         handler.handle(price, "SuperCoffee 3000", 500, None)
@@ -43,19 +51,19 @@ class TestCoffeeMachineBuyHandler:
         assert saved_machine.model == "SuperCoffee 3000"
 
     def test_handle_account_not_found(self, mock_deps):
-        fin_repo, machine_repo = mock_deps
+        uow, fin_repo, machine_repo = mock_deps
         fin_repo.get_by_id.return_value = None
         
-        handler = CoffeeMachineBuyHandler(fin_repo, machine_repo)
+        handler = CoffeeMachineBuyHandler(uow)
         with pytest.raises(AccountNotFoundError):
             handler.handle(Money.from_any(10), "Model", 100, uuid4())
 
     def test_handle_insufficient_budget(self, mock_deps):
-        fin_repo, machine_repo = mock_deps
+        uow, fin_repo, machine_repo = mock_deps
         account = Account(balance=Money(Decimal("100.00")))
         fin_repo.get_primary.return_value = account
         
-        handler = CoffeeMachineBuyHandler(fin_repo, machine_repo)
+        handler = CoffeeMachineBuyHandler(uow)
         with pytest.raises(InsufficientBudgetError):
             handler.handle(Money(Decimal("200.00")), "Model", 100, None)
 
@@ -65,18 +73,25 @@ class TestCoffeeMachineDiscardHandler:
     def mock_repo(self):
         return MagicMock(spec=CoffeeMachineRepo)
 
-    def test_handle_success(self, mock_repo):
+    @pytest.fixture
+    def mock_uow(self, mock_repo):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.machine_repo = mock_repo
+        return uow
+
+    def test_handle_success(self, mock_repo, mock_uow):
         mock_repo.get_by_id.return_value = MagicMock(spec=CoffeeMachine)
         
-        handler = CoffeeMachineDiscardHandler(mock_repo)
+        handler = CoffeeMachineDiscardHandler(mock_uow)
         handler.handle(1)
         
         mock_repo.delete_by_id.assert_called_once_with(1)
 
-    def test_handle_not_found(self, mock_repo):
+    def test_handle_not_found(self, mock_repo, mock_uow):
         mock_repo.get_by_id.return_value = None
         
-        handler = CoffeeMachineDiscardHandler(mock_repo)
+        handler = CoffeeMachineDiscardHandler(mock_uow)
         with pytest.raises(CoffeeMachineNotFoundError):
             handler.handle(999)
 
@@ -87,7 +102,11 @@ class TestCoffeeMachineInfoHandler:
         machines = [MagicMock(spec=CoffeeMachine), MagicMock(spec=CoffeeMachine)]
         repo.get_all.return_value = machines
         
-        handler = CoffeeMachineInfoHandler(repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.machine_repo = repo
+
+        handler = CoffeeMachineInfoHandler(uow)
         result = handler.handle()
         
         assert result == machines
@@ -96,7 +115,11 @@ class TestCoffeeMachineInfoHandler:
         repo = MagicMock(spec=CoffeeMachineRepo)
         repo.get_all.return_value = None
         
-        handler = CoffeeMachineInfoHandler(repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.machine_repo = repo
+
+        handler = CoffeeMachineInfoHandler(uow)
         assert handler.handle() == []
 
 
@@ -105,19 +128,26 @@ class TestCoffeeMachineServiceHandler:
     def mock_repo(self):
         return MagicMock(spec=CoffeeMachineRepo)
 
-    def test_handle_success(self, mock_repo):
+    @pytest.fixture
+    def mock_uow(self, mock_repo):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.machine_repo = mock_repo
+        return uow
+
+    def test_handle_success(self, mock_repo, mock_uow):
         machine = MagicMock(spec=CoffeeMachine)
         mock_repo.get_by_id.return_value = machine
         
-        handler = CoffeeMachineServiceHandler(mock_repo)
+        handler = CoffeeMachineServiceHandler(mock_uow)
         handler.handle(123)
         
         mock_repo.get_by_id.assert_called_once_with(123)
         machine.service.assert_called_once()
 
-    def test_handle_not_found(self, mock_repo):
+    def test_handle_not_found(self, mock_repo, mock_uow):
         mock_repo.get_by_id.return_value = None
-        handler = CoffeeMachineServiceHandler(mock_repo)
+        handler = CoffeeMachineServiceHandler(mock_uow)
         
         with pytest.raises(CoffeeMachineNotFoundError):
             handler.handle(1)
@@ -128,19 +158,26 @@ class TestCoffeeMachineResumeHandler:
     def mock_repo(self):
         return MagicMock(spec=CoffeeMachineRepo)
 
-    def test_handle_success(self, mock_repo):
+    @pytest.fixture
+    def mock_uow(self, mock_repo):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.machine_repo = mock_repo
+        return uow
+
+    def test_handle_success(self, mock_repo, mock_uow):
         machine = MagicMock(spec=CoffeeMachine)
         mock_repo.get_by_id.return_value = machine
         
-        handler = CoffeeMachineResumeHandler(mock_repo)
+        handler = CoffeeMachineResumeHandler(mock_uow)
         handler.handle(456)
         
         mock_repo.get_by_id.assert_called_once_with(456)
         machine.resume.assert_called_once()
 
-    def test_handle_not_found(self, mock_repo):
+    def test_handle_not_found(self, mock_repo, mock_uow):
         mock_repo.get_by_id.return_value = None
-        handler = CoffeeMachineResumeHandler(mock_repo)
+        handler = CoffeeMachineResumeHandler(mock_uow)
         
         with pytest.raises(CoffeeMachineNotFoundError):
             handler.handle(1)

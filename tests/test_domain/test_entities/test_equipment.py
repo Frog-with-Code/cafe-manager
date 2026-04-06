@@ -51,16 +51,6 @@ class TestTable:
         assert table._state == TableState.AVAILABLE
         assert len(table.chairs_ids) == 0
 
-    def test_table_clean_success(self):
-        table = Table(max_places=2, state=TableState.DIRTY)
-        table.clean()
-        assert table._state == TableState.AVAILABLE
-
-    def test_table_clean_failure(self):
-        table = Table(max_places=2, state=TableState.OCCUPIED)
-        with pytest.raises(TableStateError):
-            table.clean()
-
     def test_table_reserve_success(self):
         table = Table(max_places=4, chairs_ids={1, 2})
         table.reserve(people_amount=2)

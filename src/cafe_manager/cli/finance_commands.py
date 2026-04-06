@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .custom_types import parse_money, Money
 from .styles import print_info, print_success, print_table
 from .validation import validate_non_negative
@@ -17,12 +17,12 @@ from cafe_manager.application.use_cases.finance_handlers import (
     FinanceStatsHandler,
 )
 
-from cafe_manager.infrastructure.sqlite.repositories import SQLiteFinanceRepo
-
 from cafe_manager.common.exceptions import AccountNotFoundError, CLIBusinessError
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Track financial operations, budget, and statistics"
+)
 
 
 @app.command()
@@ -52,9 +52,8 @@ def invest(
     ] = "Investment",
 ):
     """Invest money to the cafe budget"""
-    env_path = get_env_path(ctx)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    handler = FinanceInvestHandler(finance_repo)
+    uow = get_uow(ctx)
+    handler = FinanceInvestHandler(uow)
 
     try:
         handler.handle(money, account_id, description)
@@ -83,9 +82,8 @@ def stats(
     ] = None,
 ):
     """Show statistics about budget, income, outcome and profit"""
-    env_path = get_env_path(сtx)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    handler = FinanceStatsHandler(finance_repo)
+    uow = get_uow(сtx)
+    handler = FinanceStatsHandler(uow)
 
     try:
         stats = handler.handle(account_id=account_id, start_date=start, end_date=end)
@@ -128,9 +126,8 @@ def history(
     ] = False,
 ) -> None:
     """Show info about n latest transactions"""
-    env_path = get_env_path(ctx)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    handler = FinanceHistoryHandler(finance_repo)
+    uow = get_uow(ctx)
+    handler = FinanceHistoryHandler(uow)
 
     try:
         history = handler.handle(account_id, limit)
@@ -175,9 +172,8 @@ def set_primary(
     ],
 ):
     """Set account as primary to proceed financial operations without explicit ID"""
-    env_path = get_env_path(ctx)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    handler = FinanceSetPrimaryHandler(finance_repo)
+    uow = get_uow(ctx)
+    handler = FinanceSetPrimaryHandler(uow)
 
     try:
         handler.handle(account_id)

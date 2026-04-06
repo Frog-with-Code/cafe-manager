@@ -1,4 +1,5 @@
 import pytest
+import sqlite3
 from decimal import Decimal
 from uuid import uuid4
 from datetime import datetime, timedelta
@@ -8,12 +9,15 @@ from cafe_manager.domain.entities.finance import Account, Transaction, Transacti
 
 class TestSQLiteFinanceRepo:
     @pytest.fixture
-    def db_path(self, tmp_path):
-        return tmp_path / "test_finance.db"
-
-    @pytest.fixture
-    def repo(self, db_path):
-        return SQLiteFinanceRepo(db_path)
+    def repo(self, tmp_path):
+        conn = sqlite3.connect(
+            tmp_path / "test_finance.db", detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteFinanceRepo(conn)
+        
+        yield repo
+        conn.close()
 
     def test_save_and_get_by_id(self, repo):
         acc_id = uuid4()
@@ -47,7 +51,6 @@ class TestSQLiteFinanceRepo:
         account = Account(balance=Money(Decimal("100.00")))
         repo.save(account)
         
-        # Manually change balance and re-save
         account._balance = Money(Decimal("200.00"))
         repo.save(account)
         
@@ -104,7 +107,6 @@ class TestSQLiteFinanceRepo:
         
         latest = repo.get_latest_transactions(account.account_id, limit=5)
         assert len(latest) == 5
-        # Descending order check
         assert latest[0].description == "Income 14"
         assert latest[4].description == "Income 10"
 
@@ -116,7 +118,6 @@ class TestSQLiteFinanceRepo:
         account.add_income(Money(Decimal("10.00")), "Same")
         repo.save(account)
         
-        # Save again, should not create duplicate transactions due to UUID conflict check
         repo.save(account)
         
         retrieved = repo.get_by_id(account.account_id)

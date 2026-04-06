@@ -9,13 +9,12 @@ from cafe_manager.domain.entities.menu import (
 
 
 class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
-    def __init__(self, db_path: Path | str):
-        super().__init__(db_path)
+    def __init__(self, connection: sqlite3.Connection):
+        super().__init__(connection)
 
     def _init_db(self) -> None:
-        with self._get_connection() as conn:
-            conn.execute(
-                """
+        self._conn.execute(
+            """
                 CREATE TABLE IF NOT EXISTS orders (
                     id TEXT PRIMARY KEY,
                     items TEXT,  
@@ -29,8 +28,7 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
                     state TEXT   
                 )
                 """
-            )
-            conn.commit()
+        )
 
     def _convert_to_entity(self, row: sqlite3.Row) -> Order:
         items_dict = self._deserialize_items(row["items"])
@@ -82,43 +80,39 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
         return items
 
     def get_by_id(self, order_id: str) -> Order | None:
-        with self._get_connection() as conn:
-            row = conn.execute(
-                "SELECT * from orders WHERE id = ?", (order_id,)
-            ).fetchone()
+        row = self._conn.execute(
+            "SELECT * from orders WHERE id = ?", (order_id,)
+        ).fetchone()
 
-            if not row:
-                return None
+        if not row:
+            return None
 
-            return self._convert_to_entity(row)
+        return self._convert_to_entity(row)
 
     def get_oldest_paid(self) -> Order | None:
-        with self._get_connection() as conn:
-            row = conn.execute(
-                "SELECT * from orders WHERE state = 'paid' ORDER BY paid_at ASC"
-            ).fetchone()
+        row = self._conn.execute(
+            "SELECT * from orders WHERE state = 'paid' ORDER BY paid_at ASC"
+        ).fetchone()
 
-            if not row:
-                return None
+        if not row:
+            return None
 
-            return self._convert_to_entity(row)
+        return self._convert_to_entity(row)
 
     def get_paid_from_oldest(self) -> list[Order] | None:
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * from orders WHERE state = 'paid' ORDER BY paid_at ASC"
-            ).fetchall()
+        rows = self._conn.execute(
+            "SELECT * from orders WHERE state = 'paid' ORDER BY paid_at ASC"
+        ).fetchall()
 
-            if not rows:
-                return None
+        if not rows:
+            return None
 
-            orders = [self._convert_to_entity(row) for row in rows]
-            return orders
+        orders = [self._convert_to_entity(row) for row in rows]
+        return orders
 
     def save(self, order: Order) -> None:
-        with self._get_connection() as conn:
-            conn.execute(
-                """
+        self._conn.execute(
+            """
                     INSERT INTO orders (id, items, table_id, client_id, employee_id, machine_id, created_at, paid_at, total_price, state) 
                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
                     ON CONFLICT(id) DO UPDATE SET
@@ -131,42 +125,39 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
                     total_price = excluded.total_price, 
                     state = excluded.state
                 """,
-                (
-                    order.order_id,
-                    self._serialize_items(order.items),
-                    order.table_id,
-                    order.client_id,
-                    order.employee_id,
-                    order.machine_id,
-                    order.created_at,
-                    order.paid_at,
-                    order.total_price,
-                    str(order._state),
-                ),
-            )
-            conn.commit()
+            (
+                order.order_id,
+                self._serialize_items(order.items),
+                order.table_id,
+                order.client_id,
+                order.employee_id,
+                order.machine_id,
+                order.created_at,
+                order.paid_at,
+                order.total_price,
+                str(order._state),
+            ),
+        )
 
     def get_active_by_table_id(self, table_id: int) -> list[Order] | None:
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                f"SELECT * from orders WHERE table_id = ? AND state != 'completed'",
-                (table_id,),
-            ).fetchall()
+        rows = self._conn.execute(
+            f"SELECT * from orders WHERE table_id = ? AND state != 'completed'",
+            (table_id,),
+        ).fetchall()
 
-            if not rows:
-                return None
+        if not rows:
+            return None
 
-            orders = [self._convert_to_entity(row) for row in rows]
-            return orders
+        orders = [self._convert_to_entity(row) for row in rows]
+        return orders
 
     def get_all_active(self) -> list[Order] | None:
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                f"SELECT * from orders WHERE state != 'completed'"
-            ).fetchall()
+        rows = self._conn.execute(
+            f"SELECT * from orders WHERE state != 'completed'"
+        ).fetchall()
 
-            if not rows:
-                return None
+        if not rows:
+            return None
 
-            orders = [self._convert_to_entity(row) for row in rows]
-            return orders
+        orders = [self._convert_to_entity(row) for row in rows]
+        return orders

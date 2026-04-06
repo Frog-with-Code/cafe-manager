@@ -33,14 +33,22 @@ from cafe_manager.application.interfaces import (
 class TestTableBuyHandler:
     @pytest.fixture
     def mock_deps(self):
-        return MagicMock(spec=FinanceRepo), MagicMock(spec=TableRepo)
+        fin_repo = MagicMock(spec=FinanceRepo)
+        table_repo = MagicMock(spec=TableRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.finance_repo = fin_repo
+        uow.table_repo = table_repo
+
+        return uow, fin_repo, table_repo
 
     def test_handle_success(self, mock_deps):
-        fin_repo, table_repo = mock_deps
+        uow, fin_repo, table_repo = mock_deps
         account = Account(balance=Money(Decimal("1000.00")))
         fin_repo.get_primary.return_value = account
         
-        handler = TableBuyHandler(fin_repo, table_repo)
+        handler = TableBuyHandler(uow)
         price = Money(Decimal("200.00"))
         handler.handle(price, 4, None)
         
@@ -52,19 +60,19 @@ class TestTableBuyHandler:
         assert saved_table.max_places == 4
 
     def test_handle_account_not_found(self, mock_deps):
-        fin_repo, table_repo = mock_deps
+        uow, fin_repo, table_repo = mock_deps
         fin_repo.get_by_id.return_value = None
         
-        handler = TableBuyHandler(fin_repo, table_repo)
+        handler = TableBuyHandler(uow)
         with pytest.raises(AccountNotFoundError):
             handler.handle(Money.from_any(10), 2, uuid4())
 
     def test_handle_insufficient_budget(self, mock_deps):
-        fin_repo, table_repo = mock_deps
+        uow, fin_repo, table_repo = mock_deps
         account = Account(balance=Money(Decimal("10.00")))
         fin_repo.get_primary.return_value = account
         
-        handler = TableBuyHandler(fin_repo, table_repo)
+        handler = TableBuyHandler(uow)
         with pytest.raises(InsufficientBudgetError):
             handler.handle(Money(Decimal("50.00")), 4, None)
 
@@ -72,23 +80,31 @@ class TestTableBuyHandler:
 class TestTableDiscardHandler:
     @pytest.fixture
     def mock_deps(self):
-        return MagicMock(spec=TableRepo), MagicMock(spec=ChairRepo)
+        table_repo = MagicMock(spec=TableRepo)
+        chair_repo = MagicMock(spec=ChairRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.table_repo = table_repo
+        uow.chair_repo = chair_repo
+
+        return uow, table_repo, chair_repo
 
     def test_handle_success(self, mock_deps):
-        table_repo, chair_repo = mock_deps
+        uow, table_repo, chair_repo = mock_deps
         table_repo.get_by_id.return_value = MagicMock(spec=Table)
         
-        handler = TableDiscardHandler(table_repo, chair_repo)
+        handler = TableDiscardHandler(uow)
         handler.handle(1)
         
         table_repo.delete_by_id.assert_called_once_with(1)
         chair_repo.delete_table_by_id.assert_called_once_with(1)
 
     def test_handle_not_found(self, mock_deps):
-        table_repo, chair_repo = mock_deps
+        uow, table_repo, chair_repo = mock_deps
         table_repo.get_by_id.return_value = None
         
-        handler = TableDiscardHandler(table_repo, chair_repo)
+        handler = TableDiscardHandler(uow)
         with pytest.raises(TableNotFoundError):
             handler.handle(99)
 
@@ -99,24 +115,39 @@ class TestTableInfoHandler:
         tables = [MagicMock(spec=Table), MagicMock(spec=Table)]
         repo.get_all.return_value = tables
         
-        handler = TableInfoHandler(repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.table_repo = repo
+        handler = TableInfoHandler(uow)
         assert handler.handle() == tables
 
     def test_handle_returns_empty_list_on_none(self):
         repo = MagicMock(spec=TableRepo)
         repo.get_all.return_value = None
         
-        handler = TableInfoHandler(repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.table_repo = repo
+        handler = TableInfoHandler(uow)
         assert handler.handle() == []
 
 
 class TestTableReserveHandler:
     @pytest.fixture
     def mock_deps(self):
-        return MagicMock(spec=TableRepo), MagicMock(spec=ChairRepo), MagicMock(spec=SeatingService)
+        table_repo = MagicMock(spec=TableRepo)
+        chair_repo = MagicMock(spec=ChairRepo)
+        service = MagicMock(spec=SeatingService)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.table_repo = table_repo
+        uow.chair_repo = chair_repo
+
+        return uow, table_repo, chair_repo, service
 
     def test_handle_success(self, mock_deps):
-        table_repo, chair_repo, service = mock_deps
+        uow, table_repo, chair_repo, service = mock_deps
         table = MagicMock(spec=Table)
         table.table_id = 5
         
@@ -124,7 +155,7 @@ class TestTableReserveHandler:
         chair_repo.get_free.return_value = [MagicMock(spec=Chair)]
         service.reserve.return_value = (table, [table], [MagicMock(spec=Chair)])
         
-        handler = TableReserveHandler(table_repo, chair_repo, service)
+        handler = TableReserveHandler(uow, service)
         result = handler.handle(2)
         
         assert result == 5
@@ -132,19 +163,19 @@ class TestTableReserveHandler:
         chair_repo.save_many.assert_called_once()
 
     def test_handle_no_tables(self, mock_deps):
-        table_repo, chair_repo, service = mock_deps
+        uow, table_repo, chair_repo, service = mock_deps
         table_repo.get_all.return_value = None
         
-        handler = TableReserveHandler(table_repo, chair_repo, service)
+        handler = TableReserveHandler(uow, service)
         with pytest.raises(TableNotFoundError):
             handler.handle(2)
 
     def test_handle_no_chairs(self, mock_deps):
-        table_repo, chair_repo, service = mock_deps
+        uow, table_repo, chair_repo, service = mock_deps
         table_repo.get_all.return_value = [MagicMock(spec=Table)]
         chair_repo.get_free.return_value = None
         
-        handler = TableReserveHandler(table_repo, chair_repo, service)
+        handler = TableReserveHandler(uow, service)
         with pytest.raises(ChairNotFoundError):
             handler.handle(2)
 
@@ -152,19 +183,28 @@ class TestTableReserveHandler:
 class TestAssignChairToTableHandler:
     @pytest.fixture
     def mock_deps(self):
-        return MagicMock(spec=TableRepo), MagicMock(spec=ChairRepo)
+        table_repo = MagicMock(spec=TableRepo)
+        chair_repo = MagicMock(spec=ChairRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.table_repo = table_repo
+        uow.chair_repo = chair_repo
+
+        return uow, table_repo, chair_repo
 
     def test_handle_success_new_assignment(self, mock_deps):
-        table_repo, chair_repo = mock_deps
+        uow, table_repo, chair_repo = mock_deps
         target_table = MagicMock(spec=Table)
         target_table.table_id = 1
         chair = MagicMock(spec=Chair)
         chair._table_id = None
+        chair.chair_id = 10
         
         table_repo.get_by_id.return_value = target_table
         chair_repo.get_by_id.return_value = chair
         
-        handler = AssignChairToTableHandler(table_repo, chair_repo)
+        handler = AssignChairToTableHandler(uow)
         handler.handle(1, 10)
         
         target_table.add_chair.assert_called_once_with(10)
@@ -173,17 +213,18 @@ class TestAssignChairToTableHandler:
         chair_repo.save.assert_called_once_with(chair)
 
     def test_handle_success_reassignment(self, mock_deps):
-        table_repo, chair_repo = mock_deps
+        uow, table_repo, chair_repo = mock_deps
         target_table = MagicMock(spec=Table)
         target_table.table_id = 2
         prev_table = MagicMock(spec=Table)
         chair = MagicMock(spec=Chair)
         chair._table_id = 1
+        chair.chair_id = 10
         
         table_repo.get_by_id.side_effect = [target_table, prev_table]
         chair_repo.get_by_id.return_value = chair
         
-        handler = AssignChairToTableHandler(table_repo, chair_repo)
+        handler = AssignChairToTableHandler(uow)
         handler.handle(2, 10)
         
         prev_table.remove_chair.assert_called_once_with(10)
@@ -191,10 +232,10 @@ class TestAssignChairToTableHandler:
         assert table_repo.save.call_count == 2
 
     def test_handle_table_not_found(self, mock_deps):
-        table_repo, chair_repo = mock_deps
+        uow, table_repo, chair_repo = mock_deps
         table_repo.get_by_id.return_value = None
         
-        handler = AssignChairToTableHandler(table_repo, chair_repo)
+        handler = AssignChairToTableHandler(uow)
         with pytest.raises(TableNotFoundError):
             handler.handle(1, 10)
 
@@ -202,10 +243,20 @@ class TestAssignChairToTableHandler:
 class TestTableFreeHandler:
     @pytest.fixture
     def mock_deps(self):
-        return MagicMock(spec=TableRepo), MagicMock(spec=ChairRepo), MagicMock(spec=OrderRepo)
+        table_repo = MagicMock(spec=TableRepo)
+        chair_repo = MagicMock(spec=ChairRepo)
+        order_repo = MagicMock(spec=OrderRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.table_repo = table_repo
+        uow.chair_repo = chair_repo
+        uow.order_repo = order_repo
+
+        return uow, table_repo, chair_repo, order_repo
 
     def test_handle_success(self, mock_deps):
-        table_repo, chair_repo, order_repo = mock_deps
+        uow, table_repo, chair_repo, order_repo = mock_deps
         table = MagicMock(spec=Table)
         chair = MagicMock(spec=Chair)
         
@@ -213,17 +264,17 @@ class TestTableFreeHandler:
         order_repo.get_active_by_table_id.return_value = None
         chair_repo.get_busy_by_table_id.return_value = [chair]
         
-        handler = TableFreeHandler(table_repo, chair_repo, order_repo)
+        handler = TableFreeHandler(uow)
         handler.handle(1)
         
         table.free.assert_called_once()
         chair.free.assert_called_once()
 
     def test_handle_busy_with_orders(self, mock_deps):
-        table_repo, chair_repo, order_repo = mock_deps
+        uow, table_repo, chair_repo, order_repo = mock_deps
         table_repo.get_by_id.return_value = MagicMock(spec=Table)
         order_repo.get_active_by_table_id.return_value = [MagicMock()]
         
-        handler = TableFreeHandler(table_repo, chair_repo, order_repo)
+        handler = TableFreeHandler(uow)
         with pytest.raises(TableBusyError):
             handler.handle(1)

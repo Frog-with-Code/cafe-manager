@@ -92,7 +92,7 @@ class TestSeatingService:
     def test_find_suitable_tables_filtering(self, service):
         t1 = Table(table_id=1, max_places=4, state=TableState.AVAILABLE)
         t2 = Table(table_id=2, max_places=2, state=TableState.AVAILABLE)
-        t3 = Table(table_id=3, max_places=4, state=TableState.DIRTY)
+        t3 = Table(table_id=3, max_places=4, state=TableState.RESERVED)
         
         suitable = service._find_suitable_tables([t1, t2, t3], 3)
         

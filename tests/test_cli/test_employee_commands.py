@@ -73,7 +73,7 @@ class TestInfoCommand:
         mock_emp.rest_start = "None"
         mock_handler.return_value.handle.return_value = [mock_emp]
         
-        result = runner.invoke(app, ["info", "--expended"])
+        result = runner.invoke(app, ["info", "--expanded"])
         
         assert result.exit_code == 0
         assert "WORKING" in result.stdout

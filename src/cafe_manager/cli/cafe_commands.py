@@ -4,15 +4,11 @@ import typer
 
 from .styles import print_info, print_info_important, print_success
 from .custom_types import Money, parse_money
-from .context import get_env_path, init_context, BASE_DIR
+from .context import get_uow, init_context, BASE_DIR
 
 from cafe_manager.application.use_cases.cafe_handlers import *
 
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteFinanceRepo,
-    SQLiteCafeRepo,
-)
-from cafe_manager.infrastructure.sqlite.env_manager import EnvironmentManager
+from cafe_manager.infrastructure.env_manager import EnvironmentManager
 
 from cafe_manager.common.exceptions import (
     CLIUnexpectedError,
@@ -20,7 +16,7 @@ from cafe_manager.common.exceptions import (
     CafeEnvNameError,
 )
 
-app = typer.Typer()
+app = typer.Typer(help="Manage cafe databases and working environments")
 env_manager = EnvironmentManager()
 
 
@@ -112,11 +108,8 @@ def init(
 ):
     """Initialize new cafe environment. Set metadata of the cafe and create its financial account"""
     init_context(ctx)
-    env_path = get_env_path(ctx)
-
-    cafe_repo = SQLiteCafeRepo(env_path)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    handler = CafeInitHandler(cafe_repo, finance_repo)
+    uow = get_uow(ctx)
+    handler = CafeInitHandler(uow)
     try:
         handler.handle(name, address, capital)
 

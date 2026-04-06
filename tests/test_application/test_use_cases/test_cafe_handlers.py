@@ -116,25 +116,33 @@ class TestCafeDeactivateHandler:
 
 class TestCafeInitHandler:
     @pytest.fixture
-    def mock_repos(self):
-        return MagicMock(), MagicMock()
+    def mock_uow(self):
+        cafe_repo = MagicMock()
+        finance_repo = MagicMock()
 
-    def test_handle_success(self, mock_repos):
-        cafe_repo, finance_repo = mock_repos
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.cafe_repo = cafe_repo
+        uow.finance_repo = finance_repo
+
+        return uow, cafe_repo, finance_repo
+
+    def test_handle_success(self, mock_uow):
+        uow, cafe_repo, finance_repo = mock_uow
         cafe_repo.get.return_value = None
         finance_repo.get_primary.return_value = None
         
-        handler = CafeInitHandler(cafe_repo, finance_repo)
+        handler = CafeInitHandler(uow)
         handler.handle("My Cafe", "Street 1", Money.from_any(500))
         
         cafe_repo.save.assert_called_once()
         finance_repo.save.assert_called_once()
         finance_repo.set_primary.assert_called_once()
 
-    def test_handle_already_initialized(self, mock_repos):
-        cafe_repo, finance_repo = mock_repos
+    def test_handle_already_initialized(self, mock_uow):
+        uow, cafe_repo, finance_repo = mock_uow
         cafe_repo.get.return_value = MagicMock()
         
-        handler = CafeInitHandler(cafe_repo, finance_repo)
+        handler = CafeInitHandler(uow)
         with pytest.raises(CafeEnvAlreadyInitError):
             handler.handle("Cafe", "Addr", Money.from_any(0))

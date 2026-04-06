@@ -60,7 +60,7 @@ class TestOrder:
 
     def test_start_cooking_invalid_state(self, sample_item):
         order = Order(order_id="ord-1", items={sample_item: 1}, state=OrderState.AWAITING_PAYMENT)
-        with pytest.raises(TableStateError):
+        with pytest.raises(OrderStateError):
             order.start_cooking("emp-1")
 
     def test_end_cooking_success(self, sample_item):

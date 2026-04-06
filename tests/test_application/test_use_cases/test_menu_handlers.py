@@ -23,12 +23,19 @@ class TestMenuInfoHandler:
     def mock_repo(self):
         return MagicMock(spec=MenuRepo)
 
-    def test_handle_returns_empty_dict_on_no_items(self, mock_repo):
+    @pytest.fixture
+    def mock_uow(self, mock_repo):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.menu_repo = mock_repo
+        return uow
+
+    def test_handle_returns_empty_dict_on_no_items(self, mock_repo, mock_uow):
         mock_repo.get_all.return_value = None
-        handler = MenuInfoHandler(mock_repo)
+        handler = MenuInfoHandler(mock_uow)
         assert handler.handle() == {}
 
-    def test_handle_groups_items_by_type(self, mock_repo):
+    def test_handle_groups_items_by_type(self, mock_repo, mock_uow):
         item_drink = MagicMock(spec=MenuItem)
         item_drink.item_type = MenuItemType.DRINK
         item_food = MagicMock(spec=MenuItem)
@@ -36,7 +43,7 @@ class TestMenuInfoHandler:
         
         mock_repo.get_all.return_value = {item_drink, item_food}
         
-        handler = MenuInfoHandler(mock_repo)
+        handler = MenuInfoHandler(mock_uow)
         result = handler.handle()
         
         assert len(result) == 2
@@ -52,10 +59,18 @@ class TestMenuAddItemHandler:
             "inventory_repo": mocker.MagicMock()
         }
 
-    def test_handle_success(self, mocker, mock_repos):
+    @pytest.fixture
+    def mock_uow(self, mock_repos):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.menu_repo = mock_repos["menu_repo"]
+        uow.inventory_repo = mock_repos["inventory_repo"]
+        return uow
+
+    def test_handle_success(self, mocker, mock_repos, mock_uow):
         menu_repo = mock_repos["menu_repo"]
         inventory_repo = mock_repos["inventory_repo"]
-        handler = MenuAddItemHandler(menu_repo, inventory_repo)
+        handler = MenuAddItemHandler(mock_uow)
 
         menu_repo.get_by_name.return_value = None
         
@@ -75,9 +90,9 @@ class TestMenuAddItemHandler:
         saved_item = args[0]
         assert saved_item.name == "Espresso"
 
-    def test_handle_item_exists_no_overwrite(self, mocker, mock_repos):
+    def test_handle_item_exists_no_overwrite(self, mocker, mock_repos, mock_uow):
         menu_repo = mock_repos["menu_repo"]
-        handler = MenuAddItemHandler(menu_repo, mock_repos["inventory_repo"])
+        handler = MenuAddItemHandler(mock_uow)
 
         menu_repo.get_by_name.return_value = mocker.Mock()
 
@@ -92,10 +107,10 @@ class TestMenuAddItemHandler:
         
         assert "already exists" in str(exc.value)
 
-    def test_handle_overwrite_success(self, mocker, mock_repos):
+    def test_handle_overwrite_success(self, mocker, mock_repos, mock_uow):
         menu_repo = mock_repos["menu_repo"]
         inventory_repo = mock_repos["inventory_repo"]
-        handler = MenuAddItemHandler(menu_repo, inventory_repo)
+        handler = MenuAddItemHandler(mock_uow)
 
         menu_repo.get_by_name.return_value = mocker.Mock()
         mock_ing = mocker.MagicMock()
@@ -111,9 +126,9 @@ class TestMenuAddItemHandler:
 
         assert menu_repo.save.called
 
-    def test_handle_ingredient_not_found(self, mocker, mock_repos):
+    def test_handle_ingredient_not_found(self, mocker, mock_repos, mock_uow):
         inventory_repo = mock_repos["inventory_repo"]
-        handler = MenuAddItemHandler(mock_repos["menu_repo"], inventory_repo)
+        handler = MenuAddItemHandler(mock_uow)
 
         mock_repos["menu_repo"].get_by_name.return_value = None
         inventory_repo.get_by_names.return_value = None
@@ -129,10 +144,10 @@ class TestMenuAddItemHandler:
         
         assert "is unknown" in str(exc.value)
 
-    def test_handle_multiple_ingredients(self, mocker, mock_repos):
+    def test_handle_multiple_ingredients(self, mocker, mock_repos, mock_uow):
         menu_repo = mock_repos["menu_repo"]
         inventory_repo = mock_repos["inventory_repo"]
-        handler = MenuAddItemHandler(menu_repo, inventory_repo)
+        handler = MenuAddItemHandler(mock_uow)
 
         menu_repo.get_by_name.return_value = None
         
@@ -161,16 +176,23 @@ class TestMenuItemRemoveHandler:
     def mock_repo(self):
         return MagicMock(spec=MenuRepo)
 
-    def test_handle_success(self, mock_repo):
+    @pytest.fixture
+    def mock_uow(self, mock_repo):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.menu_repo = mock_repo
+        return uow
+
+    def test_handle_success(self, mock_repo, mock_uow):
         mock_repo.get_by_name.return_value = MagicMock(spec=MenuItem)
-        handler = MenuItemRemoveHandler(mock_repo)
+        handler = MenuItemRemoveHandler(mock_uow)
         
         handler.handle("Cappuccino")
         mock_repo.delete_by_name.assert_called_once_with("Cappuccino")
 
-    def test_handle_not_found_error(self, mock_repo):
+    def test_handle_not_found_error(self, mock_repo, mock_uow):
         mock_repo.get_by_name.return_value = None
-        handler = MenuItemRemoveHandler(mock_repo)
+        handler = MenuItemRemoveHandler(mock_uow)
         
         with pytest.raises(MenuItemNotFoundError):
             handler.handle("Unknown Item")

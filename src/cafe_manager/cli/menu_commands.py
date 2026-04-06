@@ -3,7 +3,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .styles import print_error, print_success, print_table
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
@@ -17,11 +17,6 @@ from cafe_manager.application.use_cases.menu_handlers import (
     MenuListIngredientsHandler,
 )
 
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteInventoryRepo,
-    SQLiteMenuRepo,
-)
-
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
     IngredientNotFoundError,
@@ -30,7 +25,9 @@ from cafe_manager.common.exceptions import (
 )
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Configure menu items, prices, and recipes"
+)
 
 
 @app.command()
@@ -41,9 +38,8 @@ def info(
     ] = False,
 ):
     """Show info about menu items"""
-    env_path = get_env_path(ctx)
-    menu_repo = SQLiteMenuRepo(env_path)
-    handler = MenuInfoHandler(menu_repo)
+    uow = get_uow(ctx)
+    handler = MenuInfoHandler(uow)
 
     grouped_items = handler.handle()
 
@@ -114,10 +110,8 @@ def add_item(
     if not ingredients:
         raise CLIBusinessError("Impossible to add menu item without ingredients")
 
-    env_path = get_env_path(ctx)
-    menu_repo = SQLiteMenuRepo(env_path)
-    inventory_repo = SQLiteInventoryRepo(env_path)
-    handler = MenuAddItemHandler(menu_repo, inventory_repo)
+    uow = get_uow(ctx)
+    handler = MenuAddItemHandler(uow)
 
     try:
         handler.handle(
@@ -142,9 +136,8 @@ def remove_item(
     ],
 ):
     """Remove menu items from the menu"""
-    env_path = get_env_path(ctx)
-    menu_repo = SQLiteMenuRepo(env_path)
-    handler = MenuItemRemoveHandler(menu_repo)
+    uow = get_uow(ctx)
+    handler = MenuItemRemoveHandler(uow)
 
     try:
         handler.handle(name)
@@ -160,9 +153,8 @@ def list_ingredients(
     name: Annotated[str, typer.Option("--name", "-n", help="Name of the menu item")],
 ):
     """List ingredients of the menu item"""
-    env_path = get_env_path(ctx)
-    menu_repo = SQLiteMenuRepo(env_path)
-    handler = MenuListIngredientsHandler(menu_repo)
+    uow = get_uow(ctx)
+    handler = MenuListIngredientsHandler(uow)
 
     try:
         ingredients = handler.handle(name)

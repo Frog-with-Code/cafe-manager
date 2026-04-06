@@ -32,6 +32,7 @@ class Employee:
 
     def rest(self) -> None:
         self._state = EmployeeState.FREE
+        self.rest_start = datetime.now()
 
 
 class Client:

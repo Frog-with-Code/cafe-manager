@@ -1,4 +1,5 @@
 import pytest
+import sqlite3
 from decimal import Decimal
 from datetime import datetime, timedelta
 from cafe_manager.infrastructure.sqlite.repositories.order_repo import SQLiteOrderRepo
@@ -8,12 +9,15 @@ from cafe_manager.domain.entities.finance import Money
 
 class TestSQLiteOrderRepo:
     @pytest.fixture
-    def db_path(self, tmp_path):
-        return tmp_path / "test_orders.db"
-
-    @pytest.fixture
-    def repo(self, db_path):
-        return SQLiteOrderRepo(db_path)
+    def repo(self, tmp_path):
+        conn = sqlite3.connect(
+            tmp_path / "test_orders.db", detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteOrderRepo(conn)
+        
+        yield repo
+        conn.close()
 
     @pytest.fixture
     def sample_item(self):

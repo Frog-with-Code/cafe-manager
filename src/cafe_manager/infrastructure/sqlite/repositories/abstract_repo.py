@@ -3,7 +3,6 @@ import json
 from datetime import datetime
 from uuid import UUID
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Any
 
 from cafe_manager.domain.entities.menu import Ingredient
@@ -39,14 +38,9 @@ sqlite3.register_converter("UUID", lambda u: UUID(u.decode()))
 
 
 class AbstractSQliteRepo(ABC):
-    def __init__(self, db_path: Path | str):
-        self.db_path = Path(db_path)
+    def __init__(self, connection: sqlite3.Connection):
+        self._conn = connection
         self._init_db()
-
-    def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
-        conn.row_factory = sqlite3.Row
-        return conn
 
     @abstractmethod
     def _init_db(self) -> None: ...

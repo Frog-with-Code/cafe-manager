@@ -4,7 +4,7 @@ from pathlib import Path
 from cafe_manager.domain.entities.cafe import Cafe
 from cafe_manager.domain.entities.finance import Money, Account
 
-from cafe_manager.application.interfaces import FinanceRepo, CafeRepo
+from cafe_manager.application.interfaces import UnitOfWork
 
 from cafe_manager.infrastructure.env_manager import EnvironmentManager
 
@@ -107,19 +107,19 @@ class CafeDeactivateHandler:
 
 
 class CafeInitHandler:
-    def __init__(self, cafe_repo: CafeRepo, finance_repo: FinanceRepo) -> None:
-        self._cafe_repo = cafe_repo
-        self._finance_repo = finance_repo
+    def __init__(self, uow: UnitOfWork) -> None:
+        self._uow = uow
 
     def handle(self, name: str, address: str, startup_capital: Money) -> None:
-        if self._cafe_repo.get() or self._finance_repo.get_primary():
-            raise CafeEnvAlreadyInitError(
-                "You can have only 1 cafe in the environment. Try to switch to another environment with not initialized cafe"
-            )
+        with self._uow as uow:
+            if uow.cafe_repo.get() or uow.finance_repo.get_primary():
+                raise CafeEnvAlreadyInitError(
+                    "You can have only 1 cafe in the environment. Try to switch to another environment with not initialized cafe"
+                )
 
-        cafe = Cafe(name, address)
-        account = Account(balance=startup_capital)
+            cafe = Cafe(name, address)
+            account = Account(balance=startup_capital)
 
-        self._cafe_repo.save(cafe)
-        self._finance_repo.save(account)
-        self._finance_repo.set_primary(account.account_id)
+            uow.cafe_repo.save(cafe)
+            uow.finance_repo.save(account)
+            uow.finance_repo.set_primary(account.account_id)

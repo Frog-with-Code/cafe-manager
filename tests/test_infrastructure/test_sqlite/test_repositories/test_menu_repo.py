@@ -1,4 +1,5 @@
 import pytest
+import sqlite3
 from decimal import Decimal
 from cafe_manager.infrastructure.sqlite.repositories.menu_repo import SQLiteMenuRepo
 from cafe_manager.domain.entities.menu import (
@@ -8,12 +9,16 @@ from cafe_manager.domain.entities.finance import Money
 
 class TestSQLiteMenuRepo:
     @pytest.fixture
-    def db_path(self, tmp_path):
-        return tmp_path / "test_menu.db"
-
-    @pytest.fixture
-    def repo(self, db_path):
-        return SQLiteMenuRepo(db_path)
+    def repo(self, tmp_path):
+        conn = sqlite3.connect(
+            tmp_path / "test_menu.db", detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteMenuRepo(conn)
+        repo._init_db()
+        
+        yield repo
+        conn.close()
 
     @pytest.fixture
     def sample_ingredient(self):

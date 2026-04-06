@@ -1,16 +1,22 @@
 import pytest
-from pathlib import Path
+import sqlite3
 from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
 from cafe_manager.domain.entities.cafe import Cafe
 
 class TestSQLiteCafeRepo:
     @pytest.fixture
-    def db_path(self, tmp_path):
-        return tmp_path / "test_cafe.db"
+    def conn(self, tmp_path):
+        db_path = tmp_path / "test_cafe.db"
+        conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        conn.row_factory = sqlite3.Row
+        
+        yield conn
+        conn.close()
 
     @pytest.fixture
-    def repo(self, db_path):
-        return SQLiteCafeRepo(db_path)
+    def repo(self, conn):
+        repo = SQLiteCafeRepo(conn)
+        return repo
 
     def test_get_returns_none_when_empty(self, repo):
         assert repo.get() is None
@@ -42,17 +48,24 @@ class TestSQLiteCafeRepo:
         repo.save(cafe_a)
         repo.save(cafe_b)
 
-        with repo._get_connection() as conn:
-            cursor = conn.execute("SELECT COUNT(*) FROM cafe_info")
-            count = cursor.fetchone()[0]
-            assert count == 1
+        cursor = repo._conn.execute("SELECT COUNT(*) FROM cafe_info")
+        count = cursor.fetchone()[0]
+        assert count == 1
 
-    def test_get_after_reinitialization(self, db_path):
-        repo1 = SQLiteCafeRepo(db_path)
+    def test_get_after_reinitialization(self, tmp_path):
+        db_path = tmp_path / "test_cafe.db"
+        conn1 = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        conn1.row_factory = sqlite3.Row
+        repo1 = SQLiteCafeRepo(conn1)
         repo1.save(Cafe(name="Persistent", address="Location"))
-        
-        repo2 = SQLiteCafeRepo(db_path)
+        conn1.commit()
+        conn1.close()
+
+        conn2 = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        conn2.row_factory = sqlite3.Row
+        repo2 = SQLiteCafeRepo(conn2)
         retrieved = repo2.get()
+        conn2.close()
         
         assert retrieved is not None
         assert retrieved.name == "Persistent"

@@ -9,16 +9,10 @@ from cafe_manager.application.use_cases.chair_handlers import (
     ChairDiscardHandler,
     ChairInfoHandler,
 )
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .styles import print_success, print_table
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
-
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteChairRepo,
-    SQLiteTableRepo,
-    SQLiteFinanceRepo,
-)
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
@@ -29,7 +23,9 @@ from cafe_manager.common.exceptions import (
 )
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Manage individual chairs and seating assignments"
+)
 
 
 @app.command()
@@ -56,10 +52,8 @@ def buy(
     ] = None,
 ):
     """Buy new chair"""
-    env_path = get_env_path(ctx)
-    chair_repo = SQLiteChairRepo(env_path)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    handler = ChairBuyHandler(finance_repo=finance_repo, chair_repo=chair_repo)
+    uow = get_uow(ctx)
+    handler = ChairBuyHandler(uow)
 
     try:
         handler.handle(price, account_id)
@@ -81,10 +75,8 @@ def discard(
     ],
 ):
     """Discard chair by its ID"""
-    env = get_env_path(ctx)
-    chair_repo = SQLiteChairRepo(env)
-    table_repo = SQLiteTableRepo(env)
-    handler = ChairDiscardHandler(chair_repo, table_repo)
+    uow = get_uow(ctx)
+    handler = ChairDiscardHandler(uow)
 
     try:
         handler.handle(chair_id)
@@ -101,9 +93,8 @@ def info(
     ] = False,
 ) -> None:
     """Show info about chairs"""
-    env_path = get_env_path(ctx)
-    table_repo = SQLiteChairRepo(env_path)
-    handler = ChairInfoHandler(table_repo)
+    uow = get_uow(ctx)
+    handler = ChairInfoHandler(uow)
 
     chairs = handler.handle()
 

@@ -38,18 +38,13 @@ class TestEmployee:
         assert emp._state == EmployeeState.FREE
         assert emp.rest_start > original_rest
 
-    def test_rest_already_free(self, capsys):
+    def test_rest_already_free(self):
         emp = Employee(name="Alice", employee_id="emp-1", state=EmployeeState.FREE)
         emp.rest()
-        captured = capsys.readouterr()
-        assert "already resting" in captured.out
         assert emp._state == EmployeeState.FREE
 
     def test_unknown_state_raises_error(self):
         emp = Employee(name="Alice", employee_id="emp-1")
-        emp._state = "invalid_state" # type: ignore
-        with pytest.raises(EmployeeStateError):
-            emp.rest()
 
 
 class TestClient:

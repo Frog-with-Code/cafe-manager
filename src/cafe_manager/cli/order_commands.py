@@ -7,7 +7,7 @@ from rich.table import Table
 from .styles import print_success, print_table
 from .validation import validate_item_format, validate_non_negative
 from .custom_types import Money, parse_money
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 
 from cafe_manager.domain.services import (
     IngredientCalculator,
@@ -22,17 +22,6 @@ from cafe_manager.application.use_cases.order_handlers import (
     OrderServeHandler,
 )
 
-
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteChairRepo,
-    SQLiteTableRepo,
-    SQLiteFinanceRepo,
-    SQLiteInventoryRepo,
-    SQLiteMenuRepo,
-    SQLiteOrderRepo,
-    SQLiteClientRepo,
-    SQLiteEmployeeRepo,
-)
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
@@ -50,7 +39,9 @@ from cafe_manager.common.exceptions import (
 )
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Manage customer orders, payments, and serving"
+)
 
 
 @app.command()
@@ -81,20 +72,11 @@ def create(
     ] = False,
 ):
     """Creates new order"""
-    env_path = get_env_path(ctx)
-    order_repo = SQLiteOrderRepo(env_path)
-    inventory_repo = SQLiteInventoryRepo(env_path)
-    menu_repo = SQLiteMenuRepo(env_path)
-    table_repo = SQLiteTableRepo(env_path)
-    chair_repo = SQLiteChairRepo(env_path)
+    uow = get_uow(ctx)
     ingredient_calculator = IngredientCalculator()
     id_generator = IDGeneratingService()
     handler = OrderCreateHandler(
-        order_repo=order_repo,
-        inventory_repo=inventory_repo,
-        menu_repo=menu_repo,
-        table_repo=table_repo,
-        chair_repo=chair_repo,
+        uow=uow,
         ingredient_calculator=ingredient_calculator,
         id_generator=id_generator,
     )
@@ -147,15 +129,10 @@ def pay(
     ] = None,
 ):
     """Pay the order"""
-    env_path = get_env_path(ctx)
-    order_repo = SQLiteOrderRepo(env_path)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    client_repo = SQLiteClientRepo(env_path)
+    uow = get_uow(ctx)
     payment_service = PaymentService()
     handler = OrderPayHandler(
-        order_repo=order_repo,
-        finance_repo=finance_repo,
-        client_repo=client_repo,
+        uow=uow,
         payment_service=payment_service,
     )
 
@@ -186,9 +163,8 @@ def info(
     ] = False,
 ):
     """Show info about active orders"""
-    env_path = get_env_path(ctx)
-    order_repo = SQLiteOrderRepo(env_path)
-    handler = OrderInfoHandler(order_repo)
+    uow = get_uow(ctx)
+    handler = OrderInfoHandler(uow)
 
     orders = handler.handle()
     table = Table(title="active orders", *("", "id", "state"))
@@ -227,10 +203,8 @@ def serve(
     order_id: Annotated[str, typer.Option("--id", help="ID of the order to serve")],
 ):
     """Serve the order"""
-    env_path = get_env_path(ctx)
-    order_repo = SQLiteOrderRepo(env_path)
-    employee_repo = SQLiteEmployeeRepo(env_path)
-    handler = OrderServeHandler(order_repo, employee_repo)
+    uow = get_uow(ctx)
+    handler = OrderServeHandler(uow)
 
     try:
         handler.handle(order_id)

@@ -86,15 +86,10 @@ class TestDeactivateCommand:
 
 
 class TestInitCommand:
-    def test_init_success(self, mocker, tmp_path):
-        # Используем tmp_path для создания временного файла базы
-        temp_db = tmp_path / "temp_cafe.db"
-        mocker.patch(
-            f"{PATCH_TARGET}.init_context",
-            side_effect=lambda ctx: setattr(ctx, "obj", {"active_env": temp_db}),
-        )
-        mocker.patch(f"{PATCH_TARGET}.SQLiteCafeRepo")
-        mocker.patch(f"{PATCH_TARGET}.SQLiteFinanceRepo")
+    def test_init_success(self, mocker):
+        fake_uow = mocker.MagicMock()
+        mocker.patch(f"{PATCH_TARGET}.init_context", return_value=None)
+        mocker.patch(f"{PATCH_TARGET}.get_uow", return_value=fake_uow)
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeInitHandler")
 
         result = runner.invoke(
@@ -104,12 +99,10 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert "initialized" in result.stdout
 
-    def test_init_already_initialized(self, mocker, tmp_path):
-        temp_db = tmp_path / "temp_cafe.db"
-        mocker.patch(
-            f"{PATCH_TARGET}.init_context",
-            side_effect=lambda ctx: setattr(ctx, "obj", {"active_env": temp_db}),
-        )
+    def test_init_already_initialized(self, mocker):
+        fake_uow = mocker.MagicMock()
+        mocker.patch(f"{PATCH_TARGET}.init_context", return_value=None)
+        mocker.patch(f"{PATCH_TARGET}.get_uow", return_value=fake_uow)
         mock_handler = mocker.patch(f"{PATCH_TARGET}.CafeInitHandler")
         mock_handler.return_value.handle.side_effect = CafeEnvAlreadyInitError(
             "Already init"

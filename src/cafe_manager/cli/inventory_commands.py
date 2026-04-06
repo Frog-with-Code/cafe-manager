@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .custom_types import parse_money, Money
 from .styles import print_success, print_table
 from .validation import validate_non_negative
@@ -18,11 +18,6 @@ from cafe_manager.application.use_cases.inventory_handlers import (
     InventorySupplyHandler,
 )
 
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteFinanceRepo,
-    SQLiteInventoryRepo,
-)
-
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -31,7 +26,9 @@ from cafe_manager.common.exceptions import (
     InsufficientBudgetError,
 )
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Control inventory stocks and ingredient supplies"
+)
 
 
 @app.command("add-ingredient")
@@ -47,9 +44,8 @@ def add_ingredient(
     ] = False,
 ):
     """Add new ingredient to the inventory"""
-    env_path = get_env_path(ctx)
-    inventory_repo = SQLiteInventoryRepo(env_path)
-    handler = InventoryAddHandler(inventory_repo)
+    uow = get_uow(ctx)
+    handler = InventoryAddHandler(uow)
 
     try:
         handler.handle(name, unit, overwrite)
@@ -65,9 +61,8 @@ def remove_ingredient(
     name: Annotated[str, typer.Option("--name", "-n", help="Name of the ingredient")],
 ):
     """Remove ingredient with all its stocks from the inventory"""
-    env_path = get_env_path(ctx)
-    inventory_repo = SQLiteInventoryRepo(env_path)
-    handler = InventoryRemoveHandler(inventory_repo)
+    uow = get_uow(ctx)
+    handler = InventoryRemoveHandler(uow)
 
     try:
         handler.handle(name)
@@ -85,9 +80,8 @@ def info(
     ] = False,
 ):
     """Show info about inventory items"""
-    env_path = get_env_path(ctx)
-    inventory_repo = SQLiteInventoryRepo(env_path)
-    handler = InventoryInfoHandler(inventory_repo)
+    uow = get_uow(ctx)
+    handler = InventoryInfoHandler(uow)
 
     ingredients = handler.handle()
 
@@ -153,10 +147,8 @@ def supply(
     ] = True,
 ):
     """Supply inventory with existing ingredient"""
-    env_path = get_env_path(ctx)
-    inventory_repo = SQLiteInventoryRepo(env_path)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    handler = InventorySupplyHandler(inventory_repo, finance_repo)
+    uow = get_uow(ctx)
+    handler = InventorySupplyHandler(uow)
 
     try:
         handler.handle(name=name, amount=quantity, price=price, account_id=account_id)

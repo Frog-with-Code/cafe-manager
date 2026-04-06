@@ -5,13 +5,12 @@ from cafe_manager.domain.entities.finance import *
 
 
 class SQLiteFinanceRepo(AbstractSQliteRepo, FinanceRepo):
-    def __init__(self, db_path: Path | str):
-        super().__init__(db_path)
+    def __init__(self, connection: sqlite3.Connection):
+        super().__init__(connection)
 
     def _init_db(self) -> None:
-        with self._get_connection() as conn:
-            conn.executescript(
-                """
+        self._conn.executescript(
+            """
                 CREATE TABLE IF NOT EXISTS balances (
                     account_id UUID PRIMARY KEY,
                     balance MONEY,
@@ -30,7 +29,7 @@ class SQLiteFinanceRepo(AbstractSQliteRepo, FinanceRepo):
                     time DATETIME
                 );
                 """
-            )
+        )
 
     def _convert_to_entity(self, row: sqlite3.Row) -> Transaction:
         return Transaction(
@@ -56,77 +55,71 @@ class SQLiteFinanceRepo(AbstractSQliteRepo, FinanceRepo):
         return Account(account_id, balance, transactions)
 
     def get_by_id(self, account_id: UUID) -> Account | None:
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                """
+        rows = self._conn.execute(
+            """
                 SELECT b.account_id, b.balance, b.is_primary, t.*
                 FROM balances AS b
                 LEFT JOIN transactions AS t USING(account_id)
                 WHERE b.account_id = ?
             """,
-                (account_id,),
-            ).fetchall()
-            return self._fetch_account(rows)
+            (account_id,),
+        ).fetchall()
+        return self._fetch_account(rows)
 
     def get_primary(self) -> Account | None:
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                """
+        rows = self._conn.execute(
+            """
                 SELECT b.account_id, b.balance, b.is_primary, t.*
                 FROM balances AS b
                 LEFT JOIN transactions AS t USING(account_id)
                 WHERE b.is_primary = 1
             """
-            ).fetchall()
-            return self._fetch_account(rows)
+        ).fetchall()
+        return self._fetch_account(rows)
 
     def set_primary(self, account_id: UUID) -> None:
-        with self._get_connection() as conn:
-            conn.execute("UPDATE balances SET is_primary = 0")
-            cursor = conn.execute(
-                "UPDATE balances SET is_primary = 1 WHERE account_id = ?",
-                (account_id,),
+        self._conn.execute("UPDATE balances SET is_primary = 0")
+        cursor = self._conn.execute(
+            "UPDATE balances SET is_primary = 1 WHERE account_id = ?",
+            (account_id,),
+        )
+
+        if cursor.rowcount == 0:
+            raise AccountNotFoundError(
+                f"Impossible to set account with ID {account_id} as primary, because it doesn't exist"
             )
 
-            if cursor.rowcount == 0:
-                raise AccountNotFoundError(
-                    f"Impossible to set account with ID {account_id} as primary, because it doesn't exist"
-                )
-            conn.commit()
-
     def save(self, account: Account) -> None:
-        with self._get_connection() as conn:
-            conn.execute(
-                """
+        self._conn.execute(
+            """
                     INSERT INTO balances (account_id, balance) 
                     VALUES(?, ?) 
                     ON CONFLICT(account_id) DO UPDATE SET
                     balance = excluded.balance
                 """,
-                (account.account_id, account.balance),
-            )
+            (account.account_id, account.balance),
+        )
 
-            if account.history:
-                params = [
-                    (
-                        account.account_id,
-                        t.transaction_id,
-                        str(t.transaction_type),
-                        t.money,
-                        t.description,
-                        t.time,
-                    )
-                    for t in account.history
-                ]
-                conn.executemany(
-                    """
+        if account.history:
+            params = [
+                (
+                    account.account_id,
+                    t.transaction_id,
+                    str(t.transaction_type),
+                    t.money,
+                    t.description,
+                    t.time,
+                )
+                for t in account.history
+            ]
+            self._conn.executemany(
+                """
                         INSERT INTO transactions (account_id, transaction_id, transaction_type, money, description, time) 
                         VALUES(?, ?, ?, ?, ?, ?)
                         ON CONFLICT(transaction_id) DO NOTHING
                     """,
-                    params,
-                )
-            conn.commit()
+                params,
+            )
 
     def get_transactions_by_period(
         self, account_id: UUID, start_date: datetime | None, end_date: datetime | None
@@ -143,25 +136,23 @@ class SQLiteFinanceRepo(AbstractSQliteRepo, FinanceRepo):
 
         query += " ORDER BY time DESC"
 
-        with self._get_connection() as conn:
-            rows = conn.execute(query, tuple(params)).fetchall()
-            return [self._convert_to_entity(row) for row in rows]
+        rows = self._conn.execute(query, tuple(params)).fetchall()
+        return [self._convert_to_entity(row) for row in rows]
 
     def get_latest_transactions(
         self, account_id: UUID, limit: int = 10
     ) -> list[Transaction] | None:
-        with self._get_connection() as conn:
-            rows = conn.execute(
-                """
+        rows = self._conn.execute(
+            """
                 SELECT * FROM transactions 
                 WHERE account_id = ? 
                 ORDER BY time DESC 
                 LIMIT ?
                 """,
-                (account_id, limit),
-            ).fetchall()
+            (account_id, limit),
+        ).fetchall()
 
-            if not rows:
-                return None
+        if not rows:
+            return None
 
-            return [self._convert_to_entity(row) for row in rows]
+        return [self._convert_to_entity(row) for row in rows]

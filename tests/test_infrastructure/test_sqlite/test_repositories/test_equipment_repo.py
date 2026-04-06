@@ -1,4 +1,5 @@
 import pytest
+import sqlite3
 from cafe_manager.infrastructure.sqlite.repositories.equipment_repo import (
     SQLiteTableRepo, SQLiteChairRepo, SQLiteCoffeeMachineRepo
 )
@@ -9,13 +10,17 @@ from cafe_manager.domain.entities.equipment import (
 class TestSQLiteTableRepo:
     @pytest.fixture
     def repo(self, tmp_path):
-        return SQLiteTableRepo(tmp_path / "test.db")
+        conn = sqlite3.connect(tmp_path / "test.db", detect_types=sqlite3.PARSE_DECLTYPES)
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteTableRepo(conn)
+        
+        yield repo
+        conn.close()
 
     def test_save_and_get_by_id(self, repo):
         table = Table(max_places=4, state=TableState.AVAILABLE, chairs_ids={1, 2})
         repo.save(table)
         
-        # Tables use auto-increment, find the first one
         all_tables = repo.get_all()
         assert len(all_tables) == 1
         t_id = all_tables[0].table_id
@@ -59,7 +64,13 @@ class TestSQLiteTableRepo:
 class TestSQLiteChairRepo:
     @pytest.fixture
     def repo(self, tmp_path):
-        return SQLiteChairRepo(tmp_path / "test.db")
+        conn = sqlite3.connect(tmp_path / "test.db", detect_types=sqlite3.PARSE_DECLTYPES)
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteChairRepo(conn)
+        repo._init_db()
+        
+        yield repo
+        conn.close()
 
     def test_save_and_get_all(self, repo):
         chair = Chair(table_id=1, state=ChairState.AVAILABLE)
@@ -110,7 +121,13 @@ class TestSQLiteChairRepo:
 class TestSQLiteCoffeeMachineRepo:
     @pytest.fixture
     def repo(self, tmp_path):
-        return SQLiteCoffeeMachineRepo(tmp_path / "test.db")
+        conn = sqlite3.connect(tmp_path / "test.db", detect_types=sqlite3.PARSE_DECLTYPES)
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteCoffeeMachineRepo(conn)
+        repo._init_db()
+        
+        yield repo
+        conn.close()
 
     def test_save_and_get_by_id(self, repo):
         m = CoffeeMachine(model="Delonghi", maintenance_limit=100)
@@ -137,7 +154,7 @@ class TestSQLiteCoffeeMachineRepo:
         repo.save(m)
         saved = repo.get_all()[0]
         
-        saved.start() # cycles + 1
+        saved.start()
         repo.save(saved)
         
         updated = repo.get_by_id(saved.machine_id)

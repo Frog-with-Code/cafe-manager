@@ -28,17 +28,34 @@ from cafe_manager.application.interfaces import (
 class TestKitchenStartHandler:
     @pytest.fixture
     def mock_deps(self):
+        order_repo = MagicMock(spec=OrderRepo)
+        employee_repo = MagicMock(spec=EmployeeRepo)
+        inventory_repo = MagicMock(spec=InventoryRepo)
+        machine_repo = MagicMock(spec=CoffeeMachineRepo)
+        ingredient_calculator = MagicMock(spec=IngredientCalculator)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = order_repo
+        uow.employee_repo = employee_repo
+        uow.inventory_repo = inventory_repo
+        uow.machine_repo = machine_repo
+
         return {
-            "order_repo": MagicMock(spec=OrderRepo),
-            "employee_repo": MagicMock(spec=EmployeeRepo),
-            "inventory_repo": MagicMock(spec=InventoryRepo),
-            "machine_repo": MagicMock(spec=CoffeeMachineRepo),
-            "ingredient_calculator": MagicMock(spec=IngredientCalculator),
+            "uow": uow,
+            "order_repo": order_repo,
+            "employee_repo": employee_repo,
+            "inventory_repo": inventory_repo,
+            "machine_repo": machine_repo,
+            "ingredient_calculator": ingredient_calculator,
         }
 
     def test_handle_no_orders(self, mock_deps):
         mock_deps["order_repo"].get_oldest_paid.return_value = None
-        handler = KitchenStartHandler(**mock_deps)
+        handler = KitchenStartHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+        )
         
         result = handler.handle(None)
         assert result == (None, None, None)
@@ -60,7 +77,10 @@ class TestKitchenStartHandler:
         mock_deps["employee_repo"].get_most_free.return_value = employee
         mock_deps["ingredient_calculator"].calculate.return_value = {"beans": 10}
         
-        handler = KitchenStartHandler(**mock_deps)
+        handler = KitchenStartHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+        )
         order_id, emp_id, mach_id = handler.handle(None)
         
         assert order_id == "ord-1"
@@ -92,7 +112,10 @@ class TestKitchenStartHandler:
         mock_deps["machine_repo"].get_free.return_value = machine
         mock_deps["ingredient_calculator"].calculate.return_value = {}
         
-        handler = KitchenStartHandler(**mock_deps)
+        handler = KitchenStartHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+        )
         order_id, emp_id, mach_id = handler.handle(None)
         
         assert mach_id == 777
@@ -103,7 +126,10 @@ class TestKitchenStartHandler:
         mock_deps["order_repo"].get_oldest_paid.return_value = MagicMock(spec=Order)
         mock_deps["employee_repo"].get_by_id.return_value = None
         
-        handler = KitchenStartHandler(**mock_deps)
+        handler = KitchenStartHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+        )
         with pytest.raises(EmployeeNotFoundError):
             handler.handle("emp-ghost")
 
@@ -111,7 +137,10 @@ class TestKitchenStartHandler:
         mock_deps["order_repo"].get_oldest_paid.return_value = MagicMock(spec=Order)
         mock_deps["employee_repo"].get_most_free.return_value = None
         
-        handler = KitchenStartHandler(**mock_deps)
+        handler = KitchenStartHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+        )
         with pytest.raises(KitchenOverloadError) as exc:
             handler.handle(None)
         assert "employees are busy" in str(exc.value)
@@ -130,7 +159,10 @@ class TestKitchenStartHandler:
         mock_deps["machine_repo"].get_free.return_value = None
         mock_deps["ingredient_calculator"].calculate.return_value = {}
         
-        handler = KitchenStartHandler(**mock_deps)
+        handler = KitchenStartHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+        )
         with pytest.raises(KitchenOverloadError) as exc:
             handler.handle(None)
         assert "coffee-machines are busy" in str(exc.value)
@@ -151,7 +183,10 @@ class TestKitchenStartHandler:
         mock_deps["employee_repo"].get_by_id.return_value = employee
         mock_deps["ingredient_calculator"].calculate.return_value = {}
         
-        handler = KitchenStartHandler(**mock_deps)
+        handler = KitchenStartHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+        )
         handler.handle("emp-5")
         
         mock_deps["employee_repo"].get_by_id.assert_called_once_with("emp-5")
@@ -164,29 +199,43 @@ class TestKitchenListPending:
         orders = [MagicMock(spec=Order), MagicMock(spec=Order)]
         repo.get_paid_from_oldest.return_value = orders
 
-        handler = KitchenListPending(repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = repo
+        handler = KitchenListPending(uow)
         assert handler.handle() == orders
 
     def test_handle_returns_empty_list(self):
         repo = MagicMock(spec=OrderRepo)
         repo.get_paid_from_oldest.return_value = None
 
-        handler = KitchenListPending(repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = repo
+        handler = KitchenListPending(uow)
         assert handler.handle() == []
 
 
 class TestKitchenReadyHandler:
     @pytest.fixture
     def mock_repos(self, mocker):
+        order_repo = mocker.MagicMock()
+        machine_repo = mocker.MagicMock()
+        uow = mocker.MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = order_repo
+        uow.machine_repo = machine_repo
+
         return {
-            "order_repo": mocker.MagicMock(),
-            "machine_repo": mocker.MagicMock()
+            "uow": uow,
+            "order_repo": order_repo,
+            "machine_repo": machine_repo,
         }
 
     def test_handle_success_no_machine(self, mocker, mock_repos):
         order_repo = mock_repos["order_repo"]
         machine_repo = mock_repos["machine_repo"]
-        handler = KitchenReadyHandler(order_repo, machine_repo)
+        handler = KitchenReadyHandler(mock_repos["uow"])
 
         mock_order = mocker.MagicMock()
         mock_order.machine_id = None
@@ -202,7 +251,7 @@ class TestKitchenReadyHandler:
     def test_handle_success_with_machine(self, mocker, mock_repos):
         order_repo = mock_repos["order_repo"]
         machine_repo = mock_repos["machine_repo"]
-        handler = KitchenReadyHandler(order_repo, machine_repo)
+        handler = KitchenReadyHandler(mock_repos["uow"])
 
         mock_order = mocker.MagicMock()
         mock_order.machine_id = 5
@@ -221,7 +270,7 @@ class TestKitchenReadyHandler:
 
     def test_handle_order_not_found(self, mock_repos):
         order_repo = mock_repos["order_repo"]
-        handler = KitchenReadyHandler(order_repo, mock_repos["machine_repo"])
+        handler = KitchenReadyHandler(mock_repos["uow"])
 
         order_repo.get_by_id.return_value = None
 
@@ -233,7 +282,7 @@ class TestKitchenReadyHandler:
     def test_handle_machine_not_found(self, mocker, mock_repos):
         order_repo = mock_repos["order_repo"]
         machine_repo = mock_repos["machine_repo"]
-        handler = KitchenReadyHandler(order_repo, machine_repo)
+        handler = KitchenReadyHandler(mock_repos["uow"])
 
         mock_order = mocker.MagicMock()
         mock_order.machine_id = 99

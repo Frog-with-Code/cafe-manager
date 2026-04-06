@@ -81,13 +81,13 @@ class TestInfoCommand:
         mock_table.table_id = 5
         mock_table.max_places = 4
         mock_table.chairs_amount = 4
-        mock_table._state = "FREE"
+        mock_table._state = "available"
         mock_handler.return_value.handle.return_value = [mock_table]
 
-        result = runner.invoke(app, ["info", "--expended"])
+        result = runner.invoke(app, ["info", "--expanded"])
 
         assert result.exit_code == 0
-        assert "FREE" in result.stdout
+        assert "available" in result.stdout
         assert "capacity" in result.stdout
 
 
@@ -135,6 +135,8 @@ class TestFreeCommand:
 
 class TestAssignChairCommand:
     def test_assign_chair_success(self, mocker):
+        mocker.patch(f"{PATCH_TARGET}.init_context", return_value=None)
+        mocker.patch(f"{PATCH_TARGET}.get_uow", return_value=mocker.MagicMock())
         mock_handler = mocker.patch(f"{PATCH_TARGET}.AssignChairToTableHandler")
 
         result = runner.invoke(app, ["assign-chair", "--table", "1", "--chair", "10"])
@@ -146,6 +148,8 @@ class TestAssignChairCommand:
         assert "Chair 10 was assigned to table 1" in result.stdout
 
     def test_assign_chair_limit_reached(self, mocker):
+        mocker.patch(f"{PATCH_TARGET}.init_context", return_value=None)
+        mocker.patch(f"{PATCH_TARGET}.get_uow", return_value=mocker.MagicMock())
         mock_handler = mocker.patch(f"{PATCH_TARGET}.AssignChairToTableHandler")
         mock_handler.return_value.handle.side_effect = TablePlacesError(
             "No room for more chairs"

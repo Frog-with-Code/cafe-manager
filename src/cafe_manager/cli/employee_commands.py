@@ -3,7 +3,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .styles import print_info, print_success, print_table
 
 from cafe_manager.domain.services import IDGeneratingService
@@ -15,12 +15,10 @@ from cafe_manager.application.use_cases.employee_handlers import (
     EmployeeInfoHandler,
 )
 
-from cafe_manager.infrastructure.sqlite.repositories import SQLiteEmployeeRepo
-
 from cafe_manager.common.exceptions import CLIBusinessError, EmployeeNotFoundError
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(callback=init_context, help="Manage cafe staff, hiring, and firing")
 
 
 @app.command()
@@ -29,12 +27,9 @@ def hire(
     name: Annotated[str, typer.Option("--name", "-n", help="Name of the employee")],
 ):
     """Hire new employee"""
-    env_path = get_env_path(ctx)
-    employee_repo = SQLiteEmployeeRepo(env_path)
+    uow = get_uow(ctx)
     id_generator = IDGeneratingService()
-    handler = EmployeeHireHandler(
-        employee_repo=employee_repo, id_generator=id_generator
-    )
+    handler = EmployeeHireHandler(uow=uow, id_generator=id_generator)
 
     try:
         employee_id = handler.handle(name)
@@ -53,9 +48,8 @@ def fire(
     ],
 ):
     """Fire employee by his ID"""
-    env_path = get_env_path(ctx)
-    employee_repo = SQLiteEmployeeRepo(env_path)
-    handler = EmployeeFireHandler(employee_repo)
+    uow = get_uow(ctx)
+    handler = EmployeeFireHandler(uow)
 
     try:
         handler.handle(employee_id)
@@ -73,9 +67,8 @@ def info(
     ] = False,
 ) -> None:
     """Show info about employees"""
-    env_path = get_env_path(ctx)
-    employee_repo = SQLiteEmployeeRepo(env_path)
-    handler = EmployeeInfoHandler(employee_repo)
+    uow = get_uow(ctx)
+    handler = EmployeeInfoHandler(uow)
     employees = handler.handle()
 
     table = Table(title="employees")
@@ -103,9 +96,8 @@ def create_atmosphere(
     ctx: typer.Context,
 ):
     """The employee creates the atmosphere by telling a joke"""
-    env_path = get_env_path(ctx)
-    employee_repo = SQLiteEmployeeRepo(env_path)
-    handler = EmployeeCreateAtmosphere(employee_repo)
+    uow = get_uow(ctx)
+    handler = EmployeeCreateAtmosphere(uow)
 
     try:
         joke = handler.handle()

@@ -20,14 +20,20 @@ from cafe_manager.domain.entities.equipment import Chair, Table
 class TestChairBuyHandler:
     @pytest.fixture
     def mock_repos(self):
-        return MagicMock(), MagicMock()
+        finance_repo = MagicMock()
+        chair_repo = MagicMock()
+        return finance_repo, chair_repo
 
     def test_handle_success(self, mock_repos):
         finance_repo, chair_repo = mock_repos
         account = Account(balance=Money(Decimal("100.00")))
         finance_repo.get_primary.return_value = account
         
-        handler = ChairBuyHandler(finance_repo, chair_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.finance_repo = finance_repo
+        uow.chair_repo = chair_repo
+        handler = ChairBuyHandler(uow)
         price = Money(Decimal("50.00"))
         handler.handle(price=price, account_id=None)
         
@@ -40,7 +46,11 @@ class TestChairBuyHandler:
         finance_repo, chair_repo = mock_repos
         finance_repo.get_by_id.return_value = None
         
-        handler = ChairBuyHandler(finance_repo, chair_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.finance_repo = finance_repo
+        uow.chair_repo = chair_repo
+        handler = ChairBuyHandler(uow)
         with pytest.raises(AccountNotFoundError):
             handler.handle(Money(Decimal("10")), uuid4())
 
@@ -49,7 +59,11 @@ class TestChairBuyHandler:
         account = Account(balance=Money(Decimal("5.00")))
         finance_repo.get_primary.return_value = account
         
-        handler = ChairBuyHandler(finance_repo, chair_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.finance_repo = finance_repo
+        uow.chair_repo = chair_repo
+        handler = ChairBuyHandler(uow)
         with pytest.raises(InsufficientBudgetError):
             handler.handle(Money(Decimal("10.00")), None)
 
@@ -57,7 +71,9 @@ class TestChairBuyHandler:
 class TestChairDiscardHandler:
     @pytest.fixture
     def mock_repos(self):
-        return MagicMock(), MagicMock()
+        chair_repo = MagicMock()
+        table_repo = MagicMock()
+        return chair_repo, table_repo
 
     def test_handle_success_with_table(self, mock_repos):
         chair_repo, table_repo = mock_repos
@@ -67,7 +83,11 @@ class TestChairDiscardHandler:
         chair_repo.get_by_id.return_value = chair
         table_repo.get_by_id.return_value = table
         
-        handler = ChairDiscardHandler(chair_repo, table_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.chair_repo = chair_repo
+        uow.table_repo = table_repo
+        handler = ChairDiscardHandler(uow)
         handler.handle(chair_id=1)
         
         table.remove_chair.assert_called_once_with(1)
@@ -79,7 +99,11 @@ class TestChairDiscardHandler:
         chair = Chair(chair_id=1, table_id=None)
         chair_repo.get_by_id.return_value = chair
         
-        handler = ChairDiscardHandler(chair_repo, table_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.chair_repo = chair_repo
+        uow.table_repo = table_repo
+        handler = ChairDiscardHandler(uow)
         handler.handle(1)
         
         table_repo.save.assert_not_called()
@@ -89,7 +113,11 @@ class TestChairDiscardHandler:
         chair_repo, table_repo = mock_repos
         chair_repo.get_by_id.return_value = None
         
-        handler = ChairDiscardHandler(chair_repo, table_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.chair_repo = chair_repo
+        uow.table_repo = table_repo
+        handler = ChairDiscardHandler(uow)
         with pytest.raises(ChairNotFoundError):
             handler.handle(99)
 
@@ -100,7 +128,10 @@ class TestChairInfoHandler:
         chairs = [Chair(chair_id=1), Chair(chair_id=2)]
         mock_repo.get_all.return_value = chairs
         
-        handler = ChairInfoHandler(mock_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.chair_repo = mock_repo
+        handler = ChairInfoHandler(uow)
         result = handler.handle()
         
         assert result == chairs
@@ -109,7 +140,10 @@ class TestChairInfoHandler:
         mock_repo = MagicMock()
         mock_repo.get_all.return_value = None
         
-        handler = ChairInfoHandler(mock_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.chair_repo = mock_repo
+        handler = ChairInfoHandler(uow)
         result = handler.handle()
         
         assert result == []

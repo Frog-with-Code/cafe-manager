@@ -47,12 +47,27 @@ class TestOrderCreateHandler:
     def mock_deps(self):
         id_gen = MagicMock(spec=IDGeneratingService)
         id_gen.max_attempts = 100
+        order_repo = MagicMock(spec=OrderRepo)
+        inventory_repo = MagicMock(spec=InventoryRepo)
+        menu_repo = MagicMock(spec=MenuRepo)
+        table_repo = MagicMock(spec=TableRepo)
+        chair_repo = MagicMock(spec=ChairRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = order_repo
+        uow.inventory_repo = inventory_repo
+        uow.menu_repo = menu_repo
+        uow.table_repo = table_repo
+        uow.chair_repo = chair_repo
+
         return {
-            "order_repo": MagicMock(spec=OrderRepo),
-            "inventory_repo": MagicMock(spec=InventoryRepo),
-            "menu_repo": MagicMock(spec=MenuRepo),
-            "table_repo": MagicMock(spec=TableRepo),
-            "chair_repo": MagicMock(spec=ChairRepo),
+            "uow": uow,
+            "order_repo": order_repo,
+            "inventory_repo": inventory_repo,
+            "menu_repo": menu_repo,
+            "table_repo": table_repo,
+            "chair_repo": chair_repo,
             "ingredient_calculator": MagicMock(spec=IngredientCalculator),
             "id_generator": id_gen,
         }
@@ -71,7 +86,11 @@ class TestOrderCreateHandler:
         mock_deps["table_repo"].get_by_id.return_value = table
         mock_deps["chair_repo"].get_busy_by_table_id.return_value = []
         
-        handler = OrderCreateHandler(**mock_deps)
+        handler = OrderCreateHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+            id_generator=mock_deps["id_generator"],
+        )
         order_id = handler.handle([("Coffee", 1)], table_id=1, continue_session=False)
         
         assert order_id == "ord-SUCCESS"
@@ -80,7 +99,11 @@ class TestOrderCreateHandler:
 
     def test_handle_menu_item_not_found(self, mock_deps):
         mock_deps["menu_repo"].get_by_name.return_value = None
-        handler = OrderCreateHandler(**mock_deps)
+        handler = OrderCreateHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+            id_generator=mock_deps["id_generator"],
+        )
         
         with pytest.raises(MenuItemNotFoundError):
             handler.handle([("GhostItem", 1)], None, False)
@@ -90,7 +113,11 @@ class TestOrderCreateHandler:
         item.price = Money(Decimal("5.00"))
         mock_deps["menu_repo"].get_by_name.return_value = item
         
-        handler = OrderCreateHandler(**mock_deps)
+        handler = OrderCreateHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+            id_generator=mock_deps["id_generator"],
+        )
         with pytest.raises(MenuItemRepeatError):
             handler.handle([("Coffee", 1), ("Coffee", 2)], None, False)
 
@@ -105,7 +132,11 @@ class TestOrderCreateHandler:
         mock_deps["inventory_repo"].get_free_by_name.return_value = 10.0
         mock_deps["order_repo"].get_by_id.return_value = None
         
-        handler = OrderCreateHandler(**mock_deps)
+        handler = OrderCreateHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+            id_generator=mock_deps["id_generator"],
+        )
         with pytest.raises(InsufficientStocksError):
             handler.handle([("Latte", 1)], None, False)
 
@@ -115,7 +146,11 @@ class TestOrderCreateHandler:
         mock_deps["menu_repo"].get_by_name.return_value = item
         mock_deps["table_repo"].get_by_id.return_value = None
         
-        handler = OrderCreateHandler(**mock_deps)
+        handler = OrderCreateHandler(
+            uow=mock_deps["uow"],
+            ingredient_calculator=mock_deps["ingredient_calculator"],
+            id_generator=mock_deps["id_generator"],
+        )
         with pytest.raises(TableNotFoundError):
             handler.handle([("Tea", 1)], table_id=99, continue_session=False)
 
@@ -123,10 +158,21 @@ class TestOrderCreateHandler:
 class TestOrderPayHandler:
     @pytest.fixture
     def mock_deps(self):
+        order_repo = MagicMock(spec=OrderRepo)
+        finance_repo = MagicMock(spec=FinanceRepo)
+        client_repo = MagicMock(spec=ClientRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = order_repo
+        uow.finance_repo = finance_repo
+        uow.client_repo = client_repo
+
         return {
-            "order_repo": MagicMock(spec=OrderRepo),
-            "finance_repo": MagicMock(spec=FinanceRepo),
-            "client_repo": MagicMock(spec=ClientRepo),
+            "uow": uow,
+            "order_repo": order_repo,
+            "finance_repo": finance_repo,
+            "client_repo": client_repo,
             "payment_service": MagicMock(spec=PaymentService),
         }
 
@@ -140,7 +186,9 @@ class TestOrderPayHandler:
         mock_deps["client_repo"].get_by_id.return_value = client
         mock_deps["payment_service"].process.return_value = (order, account, client)
         
-        handler = OrderPayHandler(**mock_deps)
+        handler = OrderPayHandler(
+            uow=mock_deps["uow"], payment_service=mock_deps["payment_service"]
+        )
         handler.handle("ord-1", Money(Decimal("50.00")), None, "cli-1")
         
         mock_deps["payment_service"].process.assert_called_once()
@@ -150,7 +198,9 @@ class TestOrderPayHandler:
 
     def test_handle_order_not_found(self, mock_deps):
         mock_deps["order_repo"].get_by_id.return_value = None
-        handler = OrderPayHandler(**mock_deps)
+        handler = OrderPayHandler(
+            uow=mock_deps["uow"], payment_service=mock_deps["payment_service"]
+        )
         
         with pytest.raises(OrderNotFoundError):
             handler.handle("ghost", Money(Decimal("10")), None, None)
@@ -159,7 +209,9 @@ class TestOrderPayHandler:
         mock_deps["order_repo"].get_by_id.return_value = MagicMock(spec=Order)
         mock_deps["finance_repo"].get_by_id.return_value = None
         
-        handler = OrderPayHandler(**mock_deps)
+        handler = OrderPayHandler(
+            uow=mock_deps["uow"], payment_service=mock_deps["payment_service"]
+        )
         with pytest.raises(AccountNotFoundError):
             handler.handle("ord-1", Money(Decimal("10")), uuid4(), None)
 
@@ -168,7 +220,9 @@ class TestOrderPayHandler:
         mock_deps["finance_repo"].get_primary.return_value = MagicMock(spec=Account)
         mock_deps["client_repo"].get_by_id.return_value = None
         
-        handler = OrderPayHandler(**mock_deps)
+        handler = OrderPayHandler(
+            uow=mock_deps["uow"], payment_service=mock_deps["payment_service"]
+        )
         with pytest.raises(ClientNotFoundError):
             handler.handle("ord-1", Money(Decimal("10")), None, "ghost-client")
 
@@ -176,15 +230,24 @@ class TestOrderPayHandler:
 class TestOrderServeHandler:
     @pytest.fixture
     def mock_repos(self, mocker):
+        order_repo = mocker.MagicMock()
+        employee_repo = mocker.MagicMock()
+
+        uow = mocker.MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = order_repo
+        uow.employee_repo = employee_repo
+
         return {
-            "order_repo": mocker.MagicMock(),
-            "employee_repo": mocker.MagicMock()
+            "uow": uow,
+            "order_repo": order_repo,
+            "employee_repo": employee_repo,
         }
 
     def test_handle_success(self, mocker, mock_repos):
         order_repo = mock_repos["order_repo"]
         employee_repo = mock_repos["employee_repo"]
-        handler = OrderServeHandler(order_repo, employee_repo)
+        handler = OrderServeHandler(mock_repos["uow"])
 
         mock_order = mocker.MagicMock()
         mock_order.employee_id = "emp-777"
@@ -203,7 +266,7 @@ class TestOrderServeHandler:
 
     def test_handle_order_not_found(self, mock_repos):
         order_repo = mock_repos["order_repo"]
-        handler = OrderServeHandler(order_repo, mock_repos["employee_repo"])
+        handler = OrderServeHandler(mock_repos["uow"])
 
         order_repo.get_by_id.return_value = None
 
@@ -214,7 +277,7 @@ class TestOrderServeHandler:
 
     def test_handle_employee_not_assigned(self, mocker, mock_repos):
         order_repo = mock_repos["order_repo"]
-        handler = OrderServeHandler(order_repo, mock_repos["employee_repo"])
+        handler = OrderServeHandler(mock_repos["uow"])
 
         mock_order = mocker.MagicMock()
         mock_order.employee_id = None 
@@ -229,7 +292,7 @@ class TestOrderServeHandler:
     def test_handle_employee_not_found_in_repo(self, mocker, mock_repos):
         order_repo = mock_repos["order_repo"]
         employee_repo = mock_repos["employee_repo"]
-        handler = OrderServeHandler(order_repo, employee_repo)
+        handler = OrderServeHandler(mock_repos["uow"])
 
         mock_order = mocker.MagicMock()
         mock_order.employee_id = "ghost-id"
@@ -248,8 +311,12 @@ class TestOrderInfoHandler:
         repo = MagicMock(spec=OrderRepo)
         orders = [MagicMock(spec=Order), MagicMock(spec=Order)]
         repo.get_all_active.return_value = orders
-        
-        handler = OrderInfoHandler(repo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = repo
+
+        handler = OrderInfoHandler(uow)
         result = handler.handle()
         
         assert result == orders
@@ -257,6 +324,10 @@ class TestOrderInfoHandler:
     def test_handle_returns_empty_list(self):
         repo = MagicMock(spec=OrderRepo)
         repo.get_all_active.return_value = None
-        
-        handler = OrderInfoHandler(repo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.order_repo = repo
+
+        handler = OrderInfoHandler(uow)
         assert handler.handle() == []

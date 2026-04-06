@@ -1,4 +1,5 @@
 import pytest
+import sqlite3
 from decimal import Decimal
 from datetime import datetime, timedelta
 from cafe_manager.infrastructure.sqlite.repositories.people_repo import SQLiteEmployeeRepo, SQLiteClientRepo
@@ -7,12 +8,16 @@ from cafe_manager.domain.entities.finance import Money
 
 class TestSQLiteEmployeeRepo:
     @pytest.fixture
-    def db_path(self, tmp_path):
-        return tmp_path / "test_people.db"
-
-    @pytest.fixture
-    def repo(self, db_path):
-        return SQLiteEmployeeRepo(db_path)
+    def repo(self, tmp_path):
+        conn = sqlite3.connect(
+            tmp_path / "test_people.db", detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteEmployeeRepo(conn)
+        repo._init_db()
+        
+        yield repo
+        conn.close()
 
     def test_save_and_get_by_id(self, repo):
         emp = Employee(name="Alice", employee_id="emp-1", state=EmployeeState.FREE)
@@ -70,12 +75,15 @@ class TestSQLiteEmployeeRepo:
 
 class TestSQLiteClientRepo:
     @pytest.fixture
-    def db_path(self, tmp_path):
-        return tmp_path / "test_people.db"
-
-    @pytest.fixture
-    def repo(self, db_path):
-        return SQLiteClientRepo(db_path)
+    def repo(self, tmp_path):
+        conn = sqlite3.connect(
+            tmp_path / "test_people.db", detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        conn.row_factory = sqlite3.Row
+        repo = SQLiteClientRepo(conn)
+        
+        yield repo
+        conn.close()
 
     def test_save_and_get_by_id(self, repo):
         client = Client(client_id="cli-1", name="Bob")

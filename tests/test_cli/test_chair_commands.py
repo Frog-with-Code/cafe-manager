@@ -16,8 +16,6 @@ PATCH_TARGET = "cafe_manager.cli.chair_commands"
 class TestBuyCommand:
     def test_buy_success(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.ChairBuyHandler")
-        mocker.patch(f"{PATCH_TARGET}.SQLiteChairRepo")
-        mocker.patch(f"{PATCH_TARGET}.SQLiteFinanceRepo")
         
         result = runner.invoke(app, ["buy", "--price", "500"])
         
@@ -48,8 +46,6 @@ class TestBuyCommand:
 class TestDiscardCommand:
     def test_discard_success(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.ChairDiscardHandler")
-        mocker.patch(f"{PATCH_TARGET}.SQLiteChairRepo")
-        mocker.patch(f"{PATCH_TARGET}.SQLiteTableRepo")
         
         result = runner.invoke(app, ["discard", "--id", "1"])
         
@@ -79,7 +75,6 @@ class TestDiscardCommand:
 class TestInfoCommand:
     def test_info_basic(self, mocker):
         mock_handler = mocker.patch(f"{PATCH_TARGET}.ChairInfoHandler")
-        mocker.patch(f"{PATCH_TARGET}.SQLiteChairRepo")
         
         mock_chair = mocker.MagicMock()
         mock_chair.chair_id = 101
@@ -100,7 +95,7 @@ class TestInfoCommand:
         mock_chair._table_id = 5
         mock_handler.return_value.handle.return_value = [mock_chair]
         
-        result = runner.invoke(app, ["info", "--expended"])
+        result = runner.invoke(app, ["info", "--expanded"])
         
         assert result.exit_code == 0
         assert "FREE" in result.stdout

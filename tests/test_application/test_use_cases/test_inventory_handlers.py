@@ -24,9 +24,16 @@ class TestInventoryAddHandler:
     def mock_repo(self):
         return MagicMock(spec=InventoryRepo)
 
-    def test_handle_success(self, mock_repo):
+    @pytest.fixture
+    def mock_uow(self, mock_repo):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.inventory_repo = mock_repo
+        return uow
+
+    def test_handle_success(self, mock_repo, mock_uow):
         mock_repo.get_by_names.return_value = None
-        handler = InventoryAddHandler(mock_repo)
+        handler = InventoryAddHandler(mock_uow)
 
         handler.handle("Coffee", Unit.GRAM, overwrite=False)
 
@@ -36,16 +43,16 @@ class TestInventoryAddHandler:
         assert list(saved_data.keys())[0].name == "Coffee"
         assert list(saved_data.values())[0] == 0
 
-    def test_handle_already_exists_error(self, mock_repo):
+    def test_handle_already_exists_error(self, mock_repo, mock_uow):
         mock_repo.get_by_names.return_value = {MagicMock(): 10.0}
-        handler = InventoryAddHandler(mock_repo)
+        handler = InventoryAddHandler(mock_uow)
 
         with pytest.raises(IngredientExistsError):
             handler.handle("Coffee", Unit.GRAM, overwrite=False)
 
-    def test_handle_overwrite_success(self, mock_repo):
+    def test_handle_overwrite_success(self, mock_repo, mock_uow):
         mock_repo.get_by_names.return_value = {MagicMock(): 10.0}
-        handler = InventoryAddHandler(mock_repo)
+        handler = InventoryAddHandler(mock_uow)
 
         handler.handle("Coffee", Unit.GRAM, overwrite=True)
 
@@ -57,17 +64,24 @@ class TestInventoryRemoveHandler:
     def mock_repo(self):
         return MagicMock(spec=InventoryRepo)
 
-    def test_handle_success(self, mock_repo):
+    @pytest.fixture
+    def mock_uow(self, mock_repo):
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.inventory_repo = mock_repo
+        return uow
+
+    def test_handle_success(self, mock_repo, mock_uow):
         mock_repo.get_by_names.return_value = {MagicMock(): 5.0}
-        handler = InventoryRemoveHandler(mock_repo)
+        handler = InventoryRemoveHandler(mock_uow)
 
         handler.handle("Milk")
 
         mock_repo.delete_by_name.assert_called_once_with("Milk")
 
-    def test_handle_not_found_error(self, mock_repo):
+    def test_handle_not_found_error(self, mock_repo, mock_uow):
         mock_repo.get_by_names.return_value = None
-        handler = InventoryRemoveHandler(mock_repo)
+        handler = InventoryRemoveHandler(mock_uow)
 
         with pytest.raises(IngredientNotFoundError):
             handler.handle("Milk")
@@ -79,7 +93,11 @@ class TestInventoryInfoHandler:
         inventory = {Ingredient("Tea", Unit.GRAM): 100.0}
         mock_repo.get_all.return_value = inventory
 
-        handler = InventoryInfoHandler(mock_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.inventory_repo = mock_repo
+
+        handler = InventoryInfoHandler(uow)
         result = handler.handle()
 
         assert result == inventory
@@ -88,22 +106,34 @@ class TestInventoryInfoHandler:
         mock_repo = MagicMock(spec=InventoryRepo)
         mock_repo.get_all.return_value = None
 
-        handler = InventoryInfoHandler(mock_repo)
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.inventory_repo = mock_repo
+
+        handler = InventoryInfoHandler(uow)
         assert handler.handle() == {}
 
 
 class TestInventorySupplyHandler:
     @pytest.fixture
     def mock_deps(self):
-        return MagicMock(spec=InventoryRepo), MagicMock(spec=FinanceRepo)
+        inv_repo = MagicMock(spec=InventoryRepo)
+        fin_repo = MagicMock(spec=FinanceRepo)
+
+        uow = MagicMock()
+        uow.__enter__.return_value = uow
+        uow.inventory_repo = inv_repo
+        uow.finance_repo = fin_repo
+
+        return uow, inv_repo, fin_repo
 
     def test_handle_success_primary_account(self, mock_deps):
-        inv_repo, fin_repo = mock_deps
+        uow, inv_repo, fin_repo = mock_deps
         account = Account(balance=Money(Decimal("100.00")))
         inv_repo.get_by_names.return_value = {MagicMock(): 0}
         fin_repo.get_primary.return_value = account
 
-        handler = InventorySupplyHandler(inv_repo, fin_repo)
+        handler = InventorySupplyHandler(uow)
         price = Money(Decimal("20.00"))
         handler.handle("Sugar", 5.0, price, None)
 
@@ -112,31 +142,31 @@ class TestInventorySupplyHandler:
         inv_repo.add_ingredient_by_name.assert_called_once_with("Sugar", 5.0)
 
     def test_handle_success_specific_account(self, mock_deps):
-        inv_repo, fin_repo = mock_deps
+        uow, inv_repo, fin_repo = mock_deps
         acc_id = uuid4()
         account = Account(account_id=acc_id, balance=Money(Decimal("50.00")))
         inv_repo.get_by_names.return_value = {MagicMock(): 0}
         fin_repo.get_by_id.return_value = account
 
-        handler = InventorySupplyHandler(inv_repo, fin_repo)
+        handler = InventorySupplyHandler(uow)
         handler.handle("Sugar", 1.0, Money(Decimal("5.00")), acc_id)
 
         fin_repo.get_by_id.assert_called_once_with(acc_id)
         assert account.balance == Money(Decimal("45.00"))
 
     def test_handle_ingredient_not_found(self, mock_deps):
-        inv_repo, fin_repo = mock_deps
+        uow, inv_repo, fin_repo = mock_deps
         inv_repo.get_by_names.return_value = None
 
-        handler = InventorySupplyHandler(inv_repo, fin_repo)
+        handler = InventorySupplyHandler(uow)
         with pytest.raises(IngredientNotFoundError):
             handler.handle("Unknown", 10, Money.from_any(10), None)
 
     def test_handle_account_not_found(self, mock_deps):
-        inv_repo, fin_repo = mock_deps
+        uow, inv_repo, fin_repo = mock_deps
         inv_repo.get_by_names.return_value = {MagicMock(): 0}
         fin_repo.get_primary.return_value = None
 
-        handler = InventorySupplyHandler(inv_repo, fin_repo)
+        handler = InventorySupplyHandler(uow)
         with pytest.raises(AccountNotFoundError):
             handler.handle("Sugar", 1, Money.from_any(1), None)

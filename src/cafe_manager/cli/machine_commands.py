@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_env_path, init_context
+from .context import get_uow, init_context
 from .styles import print_success, print_table
 from .validation import validate_non_negative
 from .custom_types import Money, parse_money
@@ -17,11 +17,6 @@ from cafe_manager.application.use_cases.machine_handlers import (
     CoffeeMachineServiceHandler,
 )
 
-from cafe_manager.infrastructure.sqlite.repositories import (
-    SQLiteCoffeeMachineRepo,
-    SQLiteFinanceRepo,
-)
-
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
@@ -31,7 +26,9 @@ from cafe_manager.common.exceptions import (
 )
 
 
-app = typer.Typer(callback=init_context)
+app = typer.Typer(
+    callback=init_context, help="Track coffee machines state and technical maintenance"
+)
 
 
 @app.command()
@@ -71,10 +68,8 @@ def buy(
     ] = None,
 ):
     """Buy new coffee-machine"""
-    env_path = get_env_path(ctx)
-    finance_repo = SQLiteFinanceRepo(env_path)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
-    handler = CoffeeMachineBuyHandler(finance_repo, machine_repo)
+    uow = get_uow(ctx)
+    handler = CoffeeMachineBuyHandler(uow)
 
     try:
         handler.handle(price=price, model=model, limit=limit, account_id=account_id)
@@ -106,9 +101,8 @@ def discard(
     ] = True,
 ):
     """Discard coffee-machine by ID"""
-    env_path = get_env_path(ctx)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
-    handler = CoffeeMachineDiscardHandler(machine_repo)
+    uow = get_uow(ctx)
+    handler = CoffeeMachineDiscardHandler(uow)
 
     try:
         handler.handle(machine_id)
@@ -126,9 +120,8 @@ def info(
     ] = False,
 ) -> None:
     """Show info about machines"""
-    env_path = get_env_path(ctx)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
-    handler = CoffeeMachineInfoHandler(machine_repo)
+    uow = get_uow(ctx)
+    handler = CoffeeMachineInfoHandler(uow)
 
     machines = handler.handle()
 
@@ -173,9 +166,8 @@ def service(
     ],
 ):
     """Carry out technical maintenance"""
-    env_path = get_env_path(ctx)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
-    handler = CoffeeMachineServiceHandler(machine_repo)
+    uow = get_uow(ctx)
+    handler = CoffeeMachineServiceHandler(uow)
 
     try:
         handler.handle(machine_id)
@@ -198,9 +190,8 @@ def resume(
     ],
 ):
     """Resume coffee-machine work after maintenance"""
-    env_path = get_env_path(ctx)
-    machine_repo = SQLiteCoffeeMachineRepo(env_path)
-    handler = CoffeeMachineResumeHandler(machine_repo)
+    uow = get_uow(ctx)
+    handler = CoffeeMachineResumeHandler(uow)
 
     try:
         handler.handle(machine_id)
