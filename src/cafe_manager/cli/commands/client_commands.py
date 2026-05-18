@@ -14,7 +14,7 @@ from cafe_manager.application.use_cases.client_handlers import (
 
 from cafe_manager.infrastructure.factory import get_id_generator
 
-from cafe_manager.common.exceptions import CLIBusinessError, ClientNotFoundError
+from cafe_manager.common.exceptions import CLIBusinessError, ClientNotFoundError, IDGeneratingError
 
 
 app = typer.Typer(
@@ -35,7 +35,7 @@ def create(
     try:
         client_id = handler.handle(name)
         print_success(f"New client with ID '{client_id}' was created")
-    except RuntimeError as e:
+    except IDGeneratingError as e:
         raise CLIBusinessError(str(e))
 
 

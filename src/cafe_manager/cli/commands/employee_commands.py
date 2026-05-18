@@ -15,8 +15,11 @@ from cafe_manager.application.use_cases.employee_handlers import (
 
 from cafe_manager.infrastructure.factory import get_id_generator
 
-from cafe_manager.common.exceptions import CLIBusinessError, EmployeeNotFoundError
-
+from cafe_manager.common.exceptions import (
+    CLIBusinessError,
+    EmployeeNotFoundError,
+    IDGeneratingError,
+)
 
 app = typer.Typer(callback=init_context, help="Manage cafe staff, hiring, and firing")
 
@@ -35,7 +38,7 @@ def hire(
         employee_id = handler.handle(name)
 
         print_success(f"Employee was hired with ID {employee_id}")
-    except RuntimeError as e:
+    except IDGeneratingError as e:
         raise CLIBusinessError(str(e))
 
 

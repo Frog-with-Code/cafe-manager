@@ -16,12 +16,17 @@ from cafe_manager.application.use_cases.order_handlers import (
     OrderServeHandler,
 )
 
-from cafe_manager.infrastructure.factory import get_id_generator, get_payment_service, get_ingredient_calculator
+from cafe_manager.infrastructure.factory import (
+    get_id_generator,
+    get_payment_service,
+    get_ingredient_calculator,
+)
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     CLIBusinessError,
     ClientNotFoundError,
+    IDGeneratingError,
     IngredientNotFoundError,
     InsufficientBudgetError,
     InsufficientStocksError,
@@ -32,7 +37,6 @@ from cafe_manager.common.exceptions import (
     TableNotFoundError,
     TableStateError,
 )
-
 
 app = typer.Typer(
     callback=init_context, help="Manage customer orders, payments, and serving"
@@ -87,7 +91,7 @@ def create(
         MenuItemRepeatError,
         IngredientNotFoundError,
         InsufficientStocksError,
-        RuntimeError,
+        IDGeneratingError,
     ) as e:
         raise CLIBusinessError(str(e))
 

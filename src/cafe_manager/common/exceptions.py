@@ -190,6 +190,8 @@ class CLIBusinessError(ClickException):
 class ClientError(Exception):
     pass
 
+class IDGeneratingError(RuntimeError):
+    pass
 
 class ClientNotFoundError(ClientError):
     pass
