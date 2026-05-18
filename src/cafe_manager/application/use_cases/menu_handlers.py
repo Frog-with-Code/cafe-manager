@@ -6,7 +6,7 @@ from cafe_manager.domain.entities.menu import (
     Recipe,
     MenuItemType,
 )
-from cafe_manager.application.interfaces import UnitOfWork
+from cafe_manager.application.uow import UnitOfWork
 
 from cafe_manager.common.exceptions import (
     IngredientNotFoundError,

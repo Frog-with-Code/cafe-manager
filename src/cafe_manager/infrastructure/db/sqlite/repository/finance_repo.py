@@ -1,5 +1,5 @@
 from cafe_manager.common.exceptions import AccountNotFoundError
-from cafe_manager.application.interfaces import FinanceRepo
+from cafe_manager.application.uow import FinanceRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.finance import *
 

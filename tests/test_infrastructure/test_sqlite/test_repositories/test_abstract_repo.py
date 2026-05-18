@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from cafe_manager.domain.entities.menu import Ingredient, Unit
 from cafe_manager.domain.entities.finance import Money
-from cafe_manager.infrastructure.sqlite.repositories.abstract_repo import (
+from cafe_manager.infrastructure.db.sqlite.repository.abstract_repo import (
     adapt_ingredients_dict,
     convert_ingredients_dict,
     AbstractSQliteRepo,
@@ -37,7 +37,7 @@ class TestSqliteAdapters:
         db_path = tmp_path / "test_adapters.db"
         conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row
-        
+
         yield conn
         conn.close()
 
@@ -81,7 +81,9 @@ class TestSqliteAdapters:
 class TestAbstractSqliteRepo:
     class MockRepo(AbstractSQliteRepo):
         def _init_db(self) -> None:
-            self._conn.execute("CREATE TABLE IF NOT EXISTS mock (id INTEGER PRIMARY KEY)")
+            self._conn.execute(
+                "CREATE TABLE IF NOT EXISTS mock (id INTEGER PRIMARY KEY)"
+            )
 
         def _convert_to_entity(self, row: sqlite3.Row):
             return row["id"]

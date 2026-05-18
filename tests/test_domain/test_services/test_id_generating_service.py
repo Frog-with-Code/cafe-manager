@@ -1,5 +1,5 @@
 import pytest
-from cafe_manager.domain.services.id_generating_service import IDGeneratingService
+from cafe_manager.infrastructure.services.id_generator import IDGeneratingService
 from cafe_manager.domain.entities.people import Client, Employee
 from cafe_manager.domain.entities.order import Order
 

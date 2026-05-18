@@ -1,7 +1,8 @@
 import typer
 import sys
 
-from cafe_manager.cli import *
+from .commands import *
+
 from cafe_manager.common.exceptions import CLIBusinessError, CLIUnexpectedError
 
 

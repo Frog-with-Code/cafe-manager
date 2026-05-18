@@ -3,10 +3,8 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_uow, init_context
-from .styles import print_info, print_success, print_table
-
-from cafe_manager.domain.services import IDGeneratingService
+from ..context import get_uow, init_context
+from ..styles import print_info, print_success, print_table
 
 from cafe_manager.application.use_cases.employee_handlers import (
     EmployeeCreateAtmosphere,
@@ -14,6 +12,8 @@ from cafe_manager.application.use_cases.employee_handlers import (
     EmployeeHireHandler,
     EmployeeInfoHandler,
 )
+
+from cafe_manager.infrastructure.factory import get_id_generator
 
 from cafe_manager.common.exceptions import CLIBusinessError, EmployeeNotFoundError
 
@@ -28,7 +28,7 @@ def hire(
 ):
     """Hire new employee"""
     uow = get_uow(ctx)
-    id_generator = IDGeneratingService()
+    id_generator = get_id_generator()
     handler = EmployeeHireHandler(uow=uow, id_generator=id_generator)
 
     try:

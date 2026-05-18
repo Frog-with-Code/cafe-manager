@@ -16,7 +16,7 @@ from cafe_manager.common.exceptions import (
 )
 from cafe_manager.domain.entities.finance import Money, Account
 from cafe_manager.domain.entities.menu import Ingredient, Unit
-from cafe_manager.application.interfaces import FinanceRepo, InventoryRepo
+from cafe_manager.application.uow import FinanceRepo, InventoryRepo
 
 
 class TestInventoryAddHandler:

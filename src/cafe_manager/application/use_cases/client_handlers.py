@@ -1,28 +1,19 @@
 from cafe_manager.domain.entities.people import Client
-from cafe_manager.domain.services.id_generating_service import IDGeneratingService
-from cafe_manager.application.interfaces import UnitOfWork
+from cafe_manager.domain.services.interfaces import IDGenerator
+from cafe_manager.application.uow import UnitOfWork
 from cafe_manager.common.exceptions import ClientNotFoundError
 
 
 class ClientCreateHandler:
-    def __init__(
-        self, uow: UnitOfWork, id_generator: IDGeneratingService
-    ) -> None:
+    def __init__(self, uow: UnitOfWork, id_generator: IDGenerator) -> None:
         self._uow = uow
         self._id_generator = id_generator
 
     def handle(self, name: str) -> str:
         with self._uow as uow:
-            for _ in range(self._id_generator.max_attempts):
-                generated_id = self._id_generator.generate_unique_code(Client)
-                client = uow.client_repo.get_by_id(generated_id)
-
-                if client is None:
-                    break
-            else:
-                raise RuntimeError(
-                    "Unique code was not generated. Try to use longer code"
-                )
+            generated_id = self._id_generator.generate_unique_code(
+                Client, uow.client_repo
+            )
 
             new_client = Client(generated_id, name)
             uow.client_repo.save(new_client)
@@ -39,9 +30,7 @@ class ClientInfoHandler:
             client = uow.client_repo.get_by_id(client_id)
 
             if client is None:
-                raise ClientNotFoundError(
-                    f"Client with ID {client_id} was not found"
-                )
+                raise ClientNotFoundError(f"Client with ID {client_id} was not found")
 
             return client
 

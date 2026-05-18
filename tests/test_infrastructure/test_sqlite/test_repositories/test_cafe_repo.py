@@ -1,7 +1,8 @@
 import pytest
 import sqlite3
-from cafe_manager.infrastructure.sqlite.repositories.cafe_repo import SQLiteCafeRepo
+from cafe_manager.infrastructure.db.sqlite.repository.cafe_repo import SQLiteCafeRepo
 from cafe_manager.domain.entities.cafe import Cafe
+
 
 class TestSQLiteCafeRepo:
     @pytest.fixture
@@ -9,7 +10,7 @@ class TestSQLiteCafeRepo:
         db_path = tmp_path / "test_cafe.db"
         conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row
-        
+
         yield conn
         conn.close()
 
@@ -44,7 +45,7 @@ class TestSQLiteCafeRepo:
     def test_singleton_constraint_in_db(self, repo):
         cafe_a = Cafe(name="Cafe A", address="Addr A")
         cafe_b = Cafe(name="Cafe B", address="Addr B")
-        
+
         repo.save(cafe_a)
         repo.save(cafe_b)
 
@@ -66,14 +67,14 @@ class TestSQLiteCafeRepo:
         repo2 = SQLiteCafeRepo(conn2)
         retrieved = repo2.get()
         conn2.close()
-        
+
         assert retrieved is not None
         assert retrieved.name == "Persistent"
 
     def test_save_with_empty_strings(self, repo):
         cafe = Cafe(name="", address="")
         repo.save(cafe)
-        
+
         retrieved = repo.get()
         assert retrieved.name == ""
         assert retrieved.address == ""

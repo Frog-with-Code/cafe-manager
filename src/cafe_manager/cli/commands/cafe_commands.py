@@ -2,11 +2,23 @@ from typing import Annotated
 
 import typer
 
-from .styles import print_info, print_info_important, print_success
-from .custom_types import Money, parse_money
-from .context import get_uow, init_context, BASE_DIR
+from ..styles import print_info, print_info_important, print_success
+from ..custom_types import Money, parse_money
+from ..context import get_uow, init_context
 
-from cafe_manager.application.use_cases.cafe_handlers import *
+from cafe_manager.conf import CAFES_STORAGE_DIR
+
+from cafe_manager.application.use_cases.cafe_handlers import (
+    CafeCreateHandler,
+    CafeRemoveHandler,
+    CafeActivateHandler,
+    CafeDeactivateHandler,
+    CafeInitHandler,
+    CafeEnvExistsError,
+    CafeEnvNotFoundError,
+    CafeEnvNoActiveError,
+    CafeEnvAlreadyInitError,
+)
 
 from cafe_manager.infrastructure.env_manager import EnvironmentManager
 
@@ -25,9 +37,8 @@ def create(
     name: Annotated[str, typer.Argument(help="Name of the new cafe environment")],
 ):
     """Create new cafe environment"""
-
     try:
-        handler = CafeCreateHandler(BASE_DIR, env_manager)
+        handler = CafeCreateHandler(CAFES_STORAGE_DIR, env_manager)
         handler.handle(name)
 
         print_success(f"New cafe environment with name '{name}' was created")
@@ -55,10 +66,10 @@ def remove(
         ),
     ] = False,
 ):
-    """Remove cafe environment"""
+    """Irrevocably remove cafe environment"""
     try:
         if force:
-            handler = CafeRemoveHandler(BASE_DIR, env_manager, BASE_DIR)
+            handler = CafeRemoveHandler(env_manager)
             handler.handle(name)
 
             print_success(f"Cafe environment with name '{name}' was deleted")
@@ -72,11 +83,11 @@ def activate(
 ):
     """Activate cafe environment"""
     try:
-        handler = CafeActivateHandler(BASE_DIR, env_manager, BASE_DIR)
+        handler = CafeActivateHandler(CAFES_STORAGE_DIR, env_manager)
         handler.handle(name)
 
         print_success(f"Cafe environment with name '{name}' was activated")
-    except CafeEnvNoActiveError as e:
+    except CafeEnvNotFoundError as e:
         raise CLIBusinessError(str(e))
 
 
@@ -84,7 +95,7 @@ def activate(
 def deactivate():
     """Deactivate cafe environment"""
     try:
-        handler = CafeDeactivateHandler(BASE_DIR, env_manager, BASE_DIR)
+        handler = CafeDeactivateHandler(env_manager)
         handler.handle()
 
         print_success("Cafe environment was deactivated")
@@ -106,7 +117,7 @@ def init(
         ),
     ] = Money(),
 ):
-    """Initialize new cafe environment. Set metadata of the cafe and create its financial account"""
+    """Initialize cafe's metadata"""
     init_context(ctx)
     uow = get_uow(ctx)
     handler = CafeInitHandler(uow)
@@ -119,10 +130,13 @@ def init(
 
 
 @app.command(name="list")
-def env_list(ctx: typer.Context) -> None:
-    """Show list of cafe environments"""
-    active_env = env_manager.get_active_env_path(BASE_DIR)
+def env_list():
+    """Show list of existing cafes"""
+    active_env = env_manager.get_active_env_path()
 
-    for env in BASE_DIR.glob("*.db"):
+    for env in CAFES_STORAGE_DIR.glob("*.db"):
         message = f"{env.stem:<30} {env.resolve()}"
-        print_info_important(message) if env == active_env else print_info(message)
+        if active_env and env.resolve() == active_env.resolve():
+            print_info_important(message)
+        else:
+            print_info(message)

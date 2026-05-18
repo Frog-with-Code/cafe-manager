@@ -26,10 +26,10 @@ from cafe_manager.domain.entities.finance import Money, Account
 from cafe_manager.domain.entities.menu import MenuItem, Ingredient
 from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.entities.people import Client, Employee
-from cafe_manager.domain.services.id_generating_service import IDGeneratingService
+from cafe_manager.infrastructure.services.id_generator import IDGeneratingService
 from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
 from cafe_manager.domain.services.payment_service import PaymentService
-from cafe_manager.application.interfaces import (
+from cafe_manager.application.uow import (
     ChairRepo,
     ClientRepo,
     CoffeeMachineRepo,

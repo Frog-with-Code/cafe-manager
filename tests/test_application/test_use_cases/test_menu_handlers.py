@@ -15,7 +15,7 @@ from cafe_manager.domain.entities.menu import (
     MenuItemCategory,
     MenuItemType,
 )
-from cafe_manager.application.interfaces import InventoryRepo, MenuRepo
+from cafe_manager.application.uow import InventoryRepo, MenuRepo
 
 
 class TestMenuInfoHandler:

@@ -4,16 +4,16 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_uow, init_context
-from .styles import print_success, print_table, print_warning
-
-from cafe_manager.domain.services import IngredientCalculator
+from ..context import get_uow, init_context
+from ..styles import print_success, print_table, print_warning
 
 from cafe_manager.application.use_cases.kitchen_handlers import (
     KitchenListPending,
     KitchenReadyHandler,
     KitchenStartHandler,
 )
+
+from cafe_manager.infrastructure.factory import get_ingredient_calculator
 
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
@@ -81,7 +81,7 @@ def start(
 ):
     """Start cooking oldest paid order"""
     uow = get_uow(ctx)
-    ingredient_calculator = IngredientCalculator()
+    ingredient_calculator = get_ingredient_calculator()
     handler = KitchenStartHandler(
         uow=uow,
         ingredient_calculator=ingredient_calculator,

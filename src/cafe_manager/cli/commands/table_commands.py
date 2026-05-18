@@ -4,12 +4,10 @@ from uuid import UUID
 import typer
 from rich.table import Table as RichTable
 
-from .validation import validate_non_negative
-from .custom_types import Money, parse_money
-from .context import get_uow, init_context
-from .styles import print_success, print_table
-
-from cafe_manager.domain.services import SeatingService
+from ..validation import validate_non_negative
+from ..custom_types import Money, parse_money
+from ..context import get_uow, init_context
+from ..styles import print_success, print_table
 
 from cafe_manager.application.use_cases.table_handlers import (
     AssignChairToTableHandler,
@@ -19,6 +17,8 @@ from cafe_manager.application.use_cases.table_handlers import (
     TableInfoHandler,
     TableReserveHandler,
 )
+
+from cafe_manager.infrastructure.factory import get_seating_service
 
 from cafe_manager.common.exceptions import (
     CLIBusinessError,
@@ -160,7 +160,7 @@ def reserve(
 ):
     """Reserve table"""
     uow = get_uow(ctx)
-    seating_service = SeatingService()
+    seating_service = get_seating_service()
     handler = TableReserveHandler(uow, seating_service)
 
     try:

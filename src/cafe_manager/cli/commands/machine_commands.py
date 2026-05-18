@@ -4,10 +4,10 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_uow, init_context
-from .styles import print_success, print_table
-from .validation import validate_non_negative
-from .custom_types import Money, parse_money
+from ..context import get_uow, init_context
+from ..styles import print_success, print_table
+from ..validation import validate_non_negative
+from ..custom_types import Money, parse_money
 
 from cafe_manager.application.use_cases.machine_handlers import (
     CoffeeMachineBuyHandler,
@@ -24,7 +24,6 @@ from cafe_manager.common.exceptions import (
     CoffeeMachineStateError,
     InsufficientBudgetError,
 )
-
 
 app = typer.Typer(
     callback=init_context, help="Track coffee machines state and technical maintenance"

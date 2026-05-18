@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 
 from cafe_manager.domain.entities.finance import Money, Transaction, TransactionType
-from cafe_manager.application.interfaces import UnitOfWork
+from cafe_manager.application.uow import UnitOfWork
 from cafe_manager.common.exceptions import AccountNotFoundError
 
 

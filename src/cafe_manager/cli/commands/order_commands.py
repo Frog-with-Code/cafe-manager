@@ -4,16 +4,10 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .styles import print_success, print_table
-from .validation import validate_item_format, validate_non_negative
-from .custom_types import Money, parse_money
-from .context import get_uow, init_context
-
-from cafe_manager.domain.services import (
-    IngredientCalculator,
-    IDGeneratingService,
-    PaymentService,
-)
+from ..styles import print_success, print_table
+from ..validation import validate_item_format, validate_non_negative
+from ..custom_types import Money, parse_money
+from ..context import get_uow, init_context
 
 from cafe_manager.application.use_cases.order_handlers import (
     OrderCreateHandler,
@@ -22,6 +16,7 @@ from cafe_manager.application.use_cases.order_handlers import (
     OrderServeHandler,
 )
 
+from cafe_manager.infrastructure.factory import get_id_generator, get_payment_service, get_ingredient_calculator
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
@@ -73,8 +68,8 @@ def create(
 ):
     """Creates new order"""
     uow = get_uow(ctx)
-    ingredient_calculator = IngredientCalculator()
-    id_generator = IDGeneratingService()
+    ingredient_calculator = get_ingredient_calculator()
+    id_generator = get_id_generator()
     handler = OrderCreateHandler(
         uow=uow,
         ingredient_calculator=ingredient_calculator,
@@ -130,7 +125,7 @@ def pay(
 ):
     """Pay the order"""
     uow = get_uow(ctx)
-    payment_service = PaymentService()
+    payment_service = get_payment_service()
     handler = OrderPayHandler(
         uow=uow,
         payment_service=payment_service,

@@ -1,8 +1,8 @@
 import sqlite3
 from pathlib import Path
 
-from cafe_manager.application.interfaces import UnitOfWork
-from .repositories import *
+from cafe_manager.application.uow import UnitOfWork
+from .repository import *
 
 
 class SQLiteUnitOfWork(UnitOfWork):

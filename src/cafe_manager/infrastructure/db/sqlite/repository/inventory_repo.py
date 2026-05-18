@@ -1,4 +1,4 @@
-from cafe_manager.application.interfaces import InventoryRepo
+from cafe_manager.application.uow import InventoryRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.menu import Ingredient, Unit
 

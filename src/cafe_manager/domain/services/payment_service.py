@@ -1,3 +1,5 @@
+from cafe_manager.domain.services.interfaces import PaymentService, SeatingService
+
 from ..entities.finance import Money, Account
 from ..entities.order import Order
 from ..entities.people import Client
@@ -5,7 +7,7 @@ from ..entities.people import Client
 from cafe_manager.common.exceptions import InsufficientBudgetError
 
 
-class PaymentService:
+class DefaultPaymentService(PaymentService):
     def process(
         self,
         order: Order,

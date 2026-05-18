@@ -7,6 +7,7 @@ from typing import Any
 
 from cafe_manager.domain.entities.menu import Ingredient
 from cafe_manager.domain.entities.finance import Money
+from cafe_manager.domain.repository import Protocol
 
 
 def adapt_ingredients_dict(d: dict[Ingredient, float]) -> str:

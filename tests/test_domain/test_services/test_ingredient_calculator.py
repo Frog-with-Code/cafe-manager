@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import ItemsView
 
 from cafe_manager.domain.entities.menu import Ingredient, Unit, Recipe
-from cafe_manager.domain.services.ingredient_calculator import IngredientCalculator
+from cafe_manager.domain.services.ingredient_calculator import DefaultIngredientCalculator, IngredientCalculator
 
 
 @dataclass(frozen=True)
@@ -16,7 +16,7 @@ class TestIngredientCalculator:
 
     @pytest.fixture
     def calculator(self) -> IngredientCalculator:
-        return IngredientCalculator()
+        return DefaultIngredientCalculator()
 
     @pytest.fixture
     def dough(self) -> Ingredient:

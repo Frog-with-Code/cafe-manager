@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 from datetime import datetime
 
@@ -10,7 +10,11 @@ from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.entities.cafe import Cafe
 
 
-class EmployeeRepo(Protocol):
+class OuterIDRepo(Protocol):
+    def get_by_id(self, entity_id: str) -> Any:
+        ...
+
+class EmployeeRepo(OuterIDRepo):
     def get_most_free(self) -> Employee | None: ...
 
     def get_by_id(self, employee_id: str) -> Employee | None: ...
@@ -88,7 +92,7 @@ class InventoryRepo(Protocol):
     def withdraw(self, ingredients: dict[Ingredient, float]) -> None: ...
 
 
-class OrderRepo(Protocol):
+class OrderRepo(OuterIDRepo):
     def get_by_id(self, order_id: str) -> Order | None: ...
 
     def get_oldest_paid(self) -> Order | None: ...
@@ -124,7 +128,7 @@ class MenuRepo(Protocol):
     def delete_by_name(self, name: str) -> None: ...
 
 
-class ClientRepo(Protocol):
+class ClientRepo(OuterIDRepo):
     def get_by_id(self, client_id: str) -> Client | None: ...
 
     def get_by_name(self, name: str) -> list[Client] | None: ...
@@ -136,24 +140,3 @@ class CafeRepo(Protocol):
     def get(self) -> Cafe | None: ...
 
     def save(self, cafe: Cafe) -> None: ...
-
-
-class UnitOfWork(Protocol):
-    cafe_repo: CafeRepo
-    order_repo: OrderRepo
-    inventory_repo: InventoryRepo
-    menu_repo: MenuRepo
-    table_repo: TableRepo
-    chair_repo: ChairRepo
-    finance_repo: FinanceRepo
-    employee_repo: EmployeeRepo
-    client_repo: ClientRepo
-    machine_repo: CoffeeMachineRepo
-
-    def __enter__(self) -> "UnitOfWork": ...
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None: ...
-
-    def commit(self) -> None: ...
-
-    def rollback(self) -> None: ...

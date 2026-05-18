@@ -1,5 +1,5 @@
 from cafe_manager.domain.entities.people import Client, Employee
-from cafe_manager.application.interfaces import ClientRepo, EmployeeRepo
+from cafe_manager.application.uow import ClientRepo, EmployeeRepo
 from .abstract_repo import *
 from cafe_manager.domain.entities.people import *
 

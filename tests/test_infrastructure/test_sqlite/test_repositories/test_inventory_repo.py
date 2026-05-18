@@ -1,7 +1,10 @@
 import pytest
 import sqlite3
-from cafe_manager.infrastructure.sqlite.repositories.inventory_repo import SQLiteInventoryRepo
+from cafe_manager.infrastructure.db.sqlite.repository.inventory_repo import (
+    SQLiteInventoryRepo,
+)
 from cafe_manager.domain.entities.menu import Ingredient, Unit
+
 
 class TestSQLiteInventoryRepo:
     @pytest.fixture
@@ -11,7 +14,7 @@ class TestSQLiteInventoryRepo:
         )
         conn.row_factory = sqlite3.Row
         repo = SQLiteInventoryRepo(conn)
-        
+
         yield repo
         conn.close()
 
@@ -19,7 +22,7 @@ class TestSQLiteInventoryRepo:
     def sample_ingredients(self):
         return {
             Ingredient("Coffee Beans", Unit.GRAM): 1000.0,
-            Ingredient("Milk", Unit.MILLILITER): 5000.0
+            Ingredient("Milk", Unit.MILLILITER): 5000.0,
         }
 
     def test_init_db(self, repo):
@@ -31,7 +34,7 @@ class TestSQLiteInventoryRepo:
     def test_save_many_and_get_all(self, repo, sample_ingredients):
         repo.save_many(sample_ingredients)
         retrieved = repo.get_all()
-        
+
         assert len(retrieved) == 2
         for ing, amount in sample_ingredients.items():
             assert retrieved[ing] == amount
@@ -39,7 +42,7 @@ class TestSQLiteInventoryRepo:
     def test_get_by_names(self, repo, sample_ingredients):
         repo.save_many(sample_ingredients)
         retrieved = repo.get_by_names({"Milk"})
-        
+
         assert len(retrieved) == 1
         names = [ing.name for ing in retrieved.keys()]
         assert "Milk" in names
@@ -49,14 +52,14 @@ class TestSQLiteInventoryRepo:
         ing = Ingredient("Sugar", Unit.GRAM)
         repo.save_many({ing: 100.0})
         repo.save_many({ing: 250.0})
-        
+
         retrieved = repo.get_all()
         assert retrieved[ing] == 250.0
 
     def test_delete_by_name(self, repo, sample_ingredients):
         repo.save_many(sample_ingredients)
         repo.delete_by_name("Milk")
-        
+
         retrieved = repo.get_all()
         assert len(retrieved) == 1
         assert "Milk" not in [ing.name for ing in retrieved.keys()]
@@ -65,16 +68,16 @@ class TestSQLiteInventoryRepo:
         ing = Ingredient("Water", Unit.MILLILITER)
         repo.save_many({ing: 100.0})
         repo.add_ingredient_by_name("Water", 50.5)
-        
+
         retrieved = repo.get_all()
         assert retrieved[ing] == 150.5
 
     def test_get_free_by_name(self, repo):
         ing = Ingredient("Vanilla", Unit.GRAM)
         repo.save_many({ing: 100.0})
-        
+
         repo.reserve({ing: 30})
-            
+
         free = repo.get_free_by_name("Vanilla")
         assert free == 70.0
 
@@ -85,7 +88,7 @@ class TestSQLiteInventoryRepo:
         ing = Ingredient("Tea", Unit.GRAM)
         repo.save_many({ing: 100.0})
         repo.reserve({ing: 25.0})
-        
+
         row = repo._conn.execute(
             "SELECT amount, reserved FROM inventory WHERE name = 'Tea'"
         ).fetchone()
@@ -96,9 +99,9 @@ class TestSQLiteInventoryRepo:
         ing = Ingredient("Beans", Unit.GRAM)
         repo.save_many({ing: 100.0})
         repo.reserve({ing: 40.0})
-        
+
         repo.withdraw({ing: 30.0})
-        
+
         row = repo._conn.execute(
             "SELECT amount, reserved FROM inventory WHERE name = 'Beans'"
         ).fetchone()

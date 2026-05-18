@@ -1,7 +1,7 @@
 import pytest
 from decimal import Decimal
 from uuid import uuid4
-from cafe_manager.domain.services.payment_service import PaymentService
+from cafe_manager.domain.services.payment_service import PaymentService, DefaultPaymentService
 from cafe_manager.domain.entities.finance import Money, Account
 from cafe_manager.domain.entities.order import Order, OrderState
 from cafe_manager.domain.entities.people import Client
@@ -11,7 +11,7 @@ from cafe_manager.common.exceptions import InsufficientBudgetError
 class TestPaymentService:
     @pytest.fixture
     def service(self):
-        return PaymentService()
+        return DefaultPaymentService()
 
     @pytest.fixture
     def sample_order(self):

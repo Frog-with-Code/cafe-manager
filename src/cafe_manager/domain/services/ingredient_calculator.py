@@ -1,8 +1,10 @@
 from typing import ItemsView
+
+from cafe_manager.domain.services.interfaces import IngredientCalculator
 from ..entities.menu import MenuItem, Ingredient, Recipe
 
 
-class IngredientCalculator:
+class DefaultIngredientCalculator(IngredientCalculator):
     def get_ingredients_required(self, recipe: Recipe) -> ItemsView[Ingredient, float]:
         return recipe.ingredients.items()
 

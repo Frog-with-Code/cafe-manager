@@ -3,10 +3,10 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_uow, init_context
-from .styles import print_error, print_success, print_table
-from .validation import validate_non_negative
-from .custom_types import Money, parse_money
+from ..context import get_uow, init_context
+from ..styles import print_error, print_success, print_table
+from ..validation import validate_non_negative
+from ..custom_types import Money, parse_money
 
 from cafe_manager.domain.entities.menu import MenuItemCategory
 
@@ -23,7 +23,6 @@ from cafe_manager.common.exceptions import (
     MenuItemExistsError,
     MenuItemNotFoundError,
 )
-
 
 app = typer.Typer(
     callback=init_context, help="Configure menu items, prices, and recipes"

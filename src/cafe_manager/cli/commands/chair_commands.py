@@ -9,10 +9,10 @@ from cafe_manager.application.use_cases.chair_handlers import (
     ChairDiscardHandler,
     ChairInfoHandler,
 )
-from .context import get_uow, init_context
-from .styles import print_success, print_table
-from .validation import validate_non_negative
-from .custom_types import Money, parse_money
+from ..context import get_uow, init_context
+from ..styles import print_success, print_table
+from ..validation import validate_non_negative
+from ..custom_types import Money, parse_money
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
@@ -21,7 +21,6 @@ from cafe_manager.common.exceptions import (
     InsufficientBudgetError,
     TableNotFoundError,
 )
-
 
 app = typer.Typer(
     callback=init_context, help="Manage individual chairs and seating assignments"

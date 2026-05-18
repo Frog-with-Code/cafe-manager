@@ -17,7 +17,7 @@ from cafe_manager.common.exceptions import (
 )
 from cafe_manager.domain.entities.finance import Money, Account
 from cafe_manager.domain.entities.equipment import CoffeeMachine
-from cafe_manager.application.interfaces import CoffeeMachineRepo, FinanceRepo
+from cafe_manager.application.uow import CoffeeMachineRepo, FinanceRepo
 
 
 class TestCoffeeMachineBuyHandler:

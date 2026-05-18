@@ -1,30 +1,21 @@
 import random
 
 from cafe_manager.domain.entities.people import Employee
-from cafe_manager.domain.services.id_generating_service import IDGeneratingService
-from cafe_manager.application.interfaces import UnitOfWork
+from cafe_manager.domain.services.interfaces import IDGenerator
+from cafe_manager.application.uow import UnitOfWork
 from cafe_manager.common.exceptions import EmployeeNotFoundError
 
 
 class EmployeeHireHandler:
-    def __init__(
-        self, uow: UnitOfWork, id_generator: IDGeneratingService
-    ) -> None:
+    def __init__(self, uow: UnitOfWork, id_generator: IDGenerator) -> None:
         self._uow = uow
         self._id_generator = id_generator
 
     def handle(self, name: str) -> str:
         with self._uow as uow:
-            for _ in range(self._id_generator.max_attempts):
-                generated_id = self._id_generator.generate_unique_code(Employee)
-                employee = uow.employee_repo.get_by_id(generated_id)
-
-                if employee is None:
-                    break
-            else:
-                raise RuntimeError(
-                    "Unique code was not generated. Try to use longer code"
-                )
+            generated_id = self._id_generator.generate_unique_code(
+                Employee, uow.employee_repo
+            )
 
             new_employee = Employee(name=name, employee_id=generated_id)
             uow.employee_repo.save(new_employee)

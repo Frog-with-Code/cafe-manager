@@ -8,13 +8,13 @@ from cafe_manager.domain.entities.equipment import (
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.domain.entities.menu import Ingredient, MenuItem
 from cafe_manager.domain.entities.order import Order
-from cafe_manager.domain.services import (
-    IDGeneratingService,
+from cafe_manager.domain.services.interfaces import (
+    IDGenerator,
     IngredientCalculator,
     PaymentService,
 )
 
-from cafe_manager.application.interfaces import UnitOfWork
+from cafe_manager.application.uow import UnitOfWork
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
@@ -36,7 +36,7 @@ class OrderCreateHandler:
         self,
         uow: UnitOfWork,
         ingredient_calculator: IngredientCalculator,
-        id_generator: IDGeneratingService,
+        id_generator: IDGenerator,
     ) -> None:
         self._uow = uow
         self._ingredient_calculator = ingredient_calculator
@@ -83,17 +83,6 @@ class OrderCreateHandler:
 
         return table, chairs
 
-    def _generate_id(self, uow: UnitOfWork) -> str:
-        for _ in range(self._id_generator.max_attempts):
-            generated_id = self._id_generator.generate_unique_code(Order)
-
-            if uow.order_repo.get_by_id(generated_id) is None:
-                break
-        else:
-            raise RuntimeError("Unique code was not generated. Try to use longer code")
-
-        return generated_id
-
     def _check_ingredients(
         self, uow: UnitOfWork, ingredients_required: dict[Ingredient, float]
     ) -> None:
@@ -122,13 +111,13 @@ class OrderCreateHandler:
             table: Table | None = None
             chairs: list[Chair] = []
             if table_id is not None:
-                table, chairs = self._occupy_table(
-                    uow, table_id, continue_session
-                )
+                table, chairs = self._occupy_table(uow, table_id, continue_session)
 
             self._check_ingredients(uow, ingredients_required)
 
-            generated_id = self._generate_id(uow)
+            generated_id = self._id_generator.generate_unique_code(
+                Order, uow.order_repo
+            )
             order = Order(order_id=generated_id, items=items, table_id=table_id)
 
             uow.order_repo.save(order)
@@ -155,9 +144,7 @@ class OrderPayHandler:
         with self._uow as uow:
             order = uow.order_repo.get_by_id(order_id)
             if order is None:
-                raise OrderNotFoundError(
-                    f"Order with ID {order_id} was not found"
-                )
+                raise OrderNotFoundError(f"Order with ID {order_id} was not found")
 
             account = (
                 uow.finance_repo.get_by_id(account_id)
@@ -198,16 +185,12 @@ class OrderServeHandler:
         with self._uow as uow:
             order = uow.order_repo.get_by_id(order_id)
             if order is None:
-                raise OrderNotFoundError(
-                    f"Order with ID {order_id} was not found"
-                )
+                raise OrderNotFoundError(f"Order with ID {order_id} was not found")
 
             order.complete()
 
             if order.employee_id is None:
-                raise EmployeeNotAssignedError(
-                    "Employee not assigned to the order"
-                )
+                raise EmployeeNotAssignedError("Employee not assigned to the order")
 
             employee = uow.employee_repo.get_by_id(order.employee_id)
             if employee is None:

@@ -1,9 +1,9 @@
 from cafe_manager.domain.entities.equipment import CoffeeMachine
 from cafe_manager.domain.entities.order import Order
 from cafe_manager.domain.entities.people import Employee
-from cafe_manager.domain.services import IngredientCalculator
+from cafe_manager.domain.services.interfaces import IngredientCalculator
 
-from cafe_manager.application.interfaces import UnitOfWork
+from cafe_manager.application.uow import UnitOfWork
 
 from cafe_manager.common.exceptions import (
     CoffeeMachineNotFoundError,

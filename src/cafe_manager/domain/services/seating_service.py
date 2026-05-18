@@ -1,3 +1,5 @@
+from cafe_manager.domain.services.interfaces import SeatingService
+
 from ..entities.equipment import Table, Chair
 
 from cafe_manager.common.exceptions import (
@@ -6,7 +8,7 @@ from cafe_manager.common.exceptions import (
 )
 
 
-class SeatingService:
+class DefaultSeatingService(SeatingService):
     def _find_suitable_tables(
         self, free_tables: list[Table], people_amount: int
     ) -> list[Table]:

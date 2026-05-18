@@ -12,7 +12,7 @@ from cafe_manager.application.use_cases.finance_handlers import (
 )
 from cafe_manager.common.exceptions import AccountNotFoundError
 from cafe_manager.domain.entities.finance import Money, Account, Transaction, TransactionType
-from cafe_manager.application.interfaces import FinanceRepo
+from cafe_manager.application.uow import FinanceRepo
 
 
 class TestFinanceInvestHandler:

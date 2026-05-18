@@ -1,12 +1,12 @@
 import pytest
-from cafe_manager.domain.services.seating_service import SeatingService
+from cafe_manager.domain.services.seating_service import SeatingService, DefaultSeatingService
 from cafe_manager.domain.entities.equipment import Table, Chair, TableState, ChairState
-from cafe_manager.common.exceptions import ChairShortageError, TableSuitableNotFoundError
+from cafe_manager.common.exceptions import TableSuitableNotFoundError
 
 class TestSeatingService:
     @pytest.fixture
     def service(self):
-        return SeatingService()
+        return DefaultSeatingService()
 
     def test_reserve_direct_success(self, service):
         table = Table(table_id=1, max_places=4, chairs_ids={10, 11, 12, 13})

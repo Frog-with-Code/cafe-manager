@@ -22,7 +22,7 @@ from cafe_manager.common.exceptions import (
 from cafe_manager.domain.entities.equipment import Table, Chair
 from cafe_manager.domain.entities.finance import Money, Account
 from cafe_manager.domain.services.seating_service import SeatingService
-from cafe_manager.application.interfaces import (
+from cafe_manager.application.uow import (
     ChairRepo,
     FinanceRepo,
     OrderRepo,

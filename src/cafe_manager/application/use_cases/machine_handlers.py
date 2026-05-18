@@ -2,7 +2,7 @@ from uuid import UUID
 
 from cafe_manager.domain.entities.equipment import CoffeeMachine
 from cafe_manager.domain.entities.finance import Money
-from cafe_manager.application.interfaces import UnitOfWork
+from cafe_manager.application.uow import UnitOfWork
 
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,

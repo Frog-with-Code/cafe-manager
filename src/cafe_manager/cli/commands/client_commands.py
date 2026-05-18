@@ -3,16 +3,16 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
-from .context import get_uow, init_context
-from .styles import print_info, print_success, print_table
-
-from cafe_manager.domain.services import IDGeneratingService
+from ..context import get_uow, init_context
+from ..styles import print_info, print_success, print_table
 
 from cafe_manager.application.use_cases.client_handlers import (
     ClientCreateHandler,
     ClientInfoHandler,
     ClientListHandler,
 )
+
+from cafe_manager.infrastructure.factory import get_id_generator
 
 from cafe_manager.common.exceptions import CLIBusinessError, ClientNotFoundError
 
@@ -29,7 +29,7 @@ def create(
 ) -> None:
     """Create new client account"""
     uow = get_uow(ctx)
-    id_generator = IDGeneratingService()
+    id_generator = get_id_generator()
     handler = ClientCreateHandler(uow, id_generator)
 
     try:

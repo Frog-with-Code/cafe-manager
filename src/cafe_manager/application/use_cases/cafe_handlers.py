@@ -3,9 +3,7 @@ from pathlib import Path
 
 from cafe_manager.domain.entities.cafe import Cafe
 from cafe_manager.domain.entities.finance import Money, Account
-
-from cafe_manager.application.interfaces import UnitOfWork
-
+from cafe_manager.application.uow import UnitOfWork
 from cafe_manager.infrastructure.env_manager import EnvironmentManager
 
 from cafe_manager.common.exceptions import (
@@ -32,45 +30,31 @@ class CafeCreateHandler:
             raise CafeEnvNameSymbolsError(
                 "Provided name contains forbidden symbols. Only latin letters, digits, tie and underscore are allowed"
             )
-        db_path = self.base_path / f"{name}.db"
 
-        if db_path.exists():
+        try:
+            self._env_manager.create_env(name)
+        except FileExistsError:
             raise CafeEnvExistsError(
                 f"Impossible to create cafe '{name}'. Such cafe already exists"
             )
 
-        self._env_manager.create_env(db_path)
-
 
 class CafeRemoveHandler:
-    def __init__(
-        self, env_folder_path: Path, env_manager: EnvironmentManager, data_folder: Path
-    ) -> None:
-        self.base_path = env_folder_path
+    def __init__(self, env_manager: EnvironmentManager) -> None:
         self._env_manager = env_manager
-        self.data_folder = data_folder
 
     def handle(self, name: str) -> None:
-        db_path = self.base_path / f"{name}.db"
-
         try:
-            self._env_manager.remove_env(db_path)
-            
-            active_env = self._env_manager.get_active_env_path(self.data_folder)
-            if active_env and active_env.resolve() == db_path.resolve():
-                self._env_manager.deactivate_env(self.data_folder)
-        except FileNotFoundError as e:
+            self._env_manager.remove_env(name)
+        except FileNotFoundError:
             raise CafeEnvNotFoundError(
                 f"Impossible to remove cafe '{name}'. It doesn't exist"
-            ) from e
+            )
 
 
 class CafeActivateHandler:
-    def __init__(
-        self, env_folder_path: Path, env_manager: EnvironmentManager, data_folder: Path
-    ) -> None:
+    def __init__(self, env_folder_path: Path, env_manager: EnvironmentManager) -> None:
         self.base_path = env_folder_path
-        self.data_folder = data_folder
         self._env_manager = env_manager
 
     def handle(self, name: str) -> None:
@@ -81,26 +65,17 @@ class CafeActivateHandler:
                 f"Impossible to activate environment '{name}'. It doesn't exist"
             )
 
-        try:
-            self._env_manager.activate_env(db_path, self.data_folder)
-        except FileNotFoundError as e:
-            raise CafeEnvNotFoundError(
-                f"Impossible to activate cafe '{name}'. Such cafe not exists"
-            ) from e
+        self._env_manager.activate_env(db_path)
 
 
 class CafeDeactivateHandler:
-    def __init__(
-        self, env_folder_path: Path, env_manager: EnvironmentManager, data_folder: Path
-    ) -> None:
-        self.base_path = env_folder_path
-        self.data_folder = data_folder
+    def __init__(self, env_manager: EnvironmentManager) -> None:
         self._env_manager = env_manager
 
     def handle(self) -> None:
         try:
-            self._env_manager.deactivate_env(self.data_folder)
-        except FileNotFoundError as e:
+            self._env_manager.deactivate_env()
+        except FileNotFoundError:
             raise CafeEnvNoActiveError(
                 "Impossible to deactivate. No active environments"
             )
