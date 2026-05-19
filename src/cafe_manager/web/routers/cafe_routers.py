@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status, Path
 
 from ..dependencies import get_uow
-from ..shemas import CafeEnvResponse
+from ..schemas import CafeEnvResponse
 
 from cafe_manager.conf import CAFES_STORAGE_DIR
 

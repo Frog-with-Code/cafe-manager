@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from ..dependencies import get_uow
-from ..shemas import EmployeeResponse
+from ..schemas import EmployeeResponse
 
 from cafe_manager.application.use_cases.employee_handlers import (
     EmployeeCreateAtmosphere,

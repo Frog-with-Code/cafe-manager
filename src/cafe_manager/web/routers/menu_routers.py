@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 
-from ..shemas import IngredientInfo, MenuItemResponse
+from ..schemas import IngredientInfo, MenuItemResponse
 from ..dependencies import get_uow
 
 from cafe_manager.domain.entities.finance import Money

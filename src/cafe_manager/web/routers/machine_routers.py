@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 
 from ..dependencies import get_uow
-from ..shemas import CoffeeMachineResponse
+from ..schemas import CoffeeMachineResponse
 
 from cafe_manager.domain.entities.finance import Money
 

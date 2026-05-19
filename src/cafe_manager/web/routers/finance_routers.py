@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from ..shemas import FinanceStatsResponse, TransactionResponse
+from ..schemas import FinanceStatsResponse, TransactionResponse
 from ..dependencies import get_uow
 
 from cafe_manager.domain.entities.finance import Money

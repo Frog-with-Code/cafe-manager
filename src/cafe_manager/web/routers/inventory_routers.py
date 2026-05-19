@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Path
 
 from ..dependencies import get_uow
-from ..shemas import InventoryResponse
+from ..schemas import InventoryResponse
 
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.domain.entities.menu import Unit

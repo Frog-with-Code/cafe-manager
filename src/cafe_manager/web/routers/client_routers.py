@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..dependencies import get_uow
-from ..shemas import ClientResponse
+from ..schemas import ClientResponse
 
 from cafe_manager.application.uow import UnitOfWork
 from cafe_manager.application.use_cases.client_handlers import (

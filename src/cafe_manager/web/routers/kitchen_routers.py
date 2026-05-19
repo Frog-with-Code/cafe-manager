@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..dependencies import get_uow
-from ..shemas import OrderResponse
+from ..schemas import OrderResponse
 
 from cafe_manager.application.uow import UnitOfWork
 from cafe_manager.application.use_cases.kitchen_handlers import (

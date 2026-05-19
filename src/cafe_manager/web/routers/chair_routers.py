@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 
-from ..shemas import ChairResponse
+from ..schemas import ChairResponse
 from ..dependencies import get_uow
 
 from cafe_manager.domain.entities.equipment import Chair
