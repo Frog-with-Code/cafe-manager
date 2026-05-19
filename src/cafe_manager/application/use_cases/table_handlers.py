@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from cafe_manager.domain.entities.equipment import Chair, Table
+from cafe_manager.domain.entities.equipment import Chair, Table, TableState
 from cafe_manager.domain.entities.finance import Money
 from cafe_manager.domain.services.interfaces import SeatingService
 
@@ -13,6 +13,7 @@ from cafe_manager.common.exceptions import (
     TableBusyError,
     TableNotFoundError,
     TablePlacesError,
+    TableStateError,
 )
 
 
@@ -48,8 +49,11 @@ class TableDiscardHandler:
 
     def handle(self, table_id: int) -> None:
         with self._uow as uow:
-            if uow.table_repo.get_by_id(table_id) is None:
+            table = uow.table_repo.get_by_id(table_id)
+            if table is None:
                 raise TableNotFoundError(f"Table with id {table_id} was not found")
+            if table._state == TableState.OCCUPIED:
+                raise TableStateError("Impossible to discard occupied table")
 
             uow.table_repo.delete_by_id(table_id)
             uow.chair_repo.delete_table_by_id(table_id)

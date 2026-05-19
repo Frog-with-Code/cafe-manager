@@ -65,18 +65,14 @@ def info(
 
 
 @app.command("list")
-def list_by_name(
+def list_clients(
     ctx: typer.Context,
-    name: Annotated[
-        str,
-        typer.Option("--name", "-n", help="Name of the target clients"),
-    ],
 ):
-    """Show list of clients by their name"""
+    """Show list of all clients"""
     uow = get_uow(ctx)
     handler = ClientListHandler(uow)
 
-    clients = handler.handle(name)
+    clients = handler.handle()
 
     table = Table(title="orders", *["", "id", "name"])
 

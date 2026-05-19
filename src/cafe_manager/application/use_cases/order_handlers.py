@@ -213,3 +213,16 @@ class OrderInfoHandler:
             orders = uow.order_repo.get_all_active()
 
             return orders or []
+
+
+class OrderShowItemsHandler:
+    def __init__(self, uow: UnitOfWork) -> None:
+        self._uow = uow
+
+    def handle(self, order_id: str) -> dict[MenuItem, int]:
+        with self._uow as uow:
+            order = uow.order_repo.get_by_id(order_id)
+            if order is None:
+                raise OrderNotFoundError(f"Order with ID '{order_id}' was not found")
+
+            return order.items

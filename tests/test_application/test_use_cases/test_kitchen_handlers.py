@@ -197,7 +197,7 @@ class TestKitchenListPending:
     def test_handle_returns_orders(self):
         repo = MagicMock(spec=OrderRepo)
         orders = [MagicMock(spec=Order), MagicMock(spec=Order)]
-        repo.get_paid_from_oldest.return_value = orders
+        repo.get_cooking_from_oldest.return_value = orders
 
         uow = MagicMock()
         uow.__enter__.return_value = uow
@@ -207,7 +207,7 @@ class TestKitchenListPending:
 
     def test_handle_returns_empty_list(self):
         repo = MagicMock(spec=OrderRepo)
-        repo.get_paid_from_oldest.return_value = None
+        repo.get_cooking_from_oldest.return_value = None
 
         uow = MagicMock()
         uow.__enter__.return_value = uow

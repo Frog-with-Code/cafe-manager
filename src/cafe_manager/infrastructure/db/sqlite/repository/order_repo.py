@@ -99,9 +99,9 @@ class SQLiteOrderRepo(AbstractSQliteRepo, OrderRepo):
 
         return self._convert_to_entity(row)
 
-    def get_paid_from_oldest(self) -> list[Order] | None:
+    def get_cooking_from_oldest(self) -> list[Order] | None:
         rows = self._conn.execute(
-            "SELECT * from orders WHERE state = 'paid' ORDER BY paid_at ASC"
+            "SELECT * from orders WHERE state = 'in-progress' ORDER BY paid_at ASC"
         ).fetchall()
 
         if not rows:

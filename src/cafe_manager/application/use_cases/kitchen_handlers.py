@@ -87,7 +87,7 @@ class KitchenListPending:
 
     def handle(self) -> list[Order]:
         with self._uow as uow:
-            paid_orders = uow.order_repo.get_paid_from_oldest()
+            paid_orders = uow.order_repo.get_cooking_from_oldest()
             return paid_orders if paid_orders else []
 
 

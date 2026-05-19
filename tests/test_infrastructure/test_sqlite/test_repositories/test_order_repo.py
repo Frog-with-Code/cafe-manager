@@ -91,22 +91,25 @@ class TestSQLiteOrderRepo:
         oldest = repo.get_oldest_paid()
         assert oldest.order_id == "o2"
 
-    def test_get_paid_from_oldest(self, repo, sample_item):
+    def test_get_cooking_from_oldest(self, repo, sample_item):
         now = datetime.now()
         o1 = Order(
-            order_id="o1", items={sample_item: 1}, state=OrderState.PAID, paid_at=now
+            order_id="o1",
+            items={sample_item: 1},
+            state=OrderState.IN_PROGRESS,
+            paid_at=now,
         )
         o2 = Order(
             order_id="o2",
             items={sample_item: 1},
-            state=OrderState.PAID,
+            state=OrderState.IN_PROGRESS,
             paid_at=now - timedelta(minutes=5),
         )
 
         repo.save(o1)
         repo.save(o2)
 
-        paid_orders = repo.get_paid_from_oldest()
+        paid_orders = repo.get_cooking_from_oldest()
         assert len(paid_orders) == 2
         assert paid_orders[0].order_id == "o2"
         assert paid_orders[1].order_id == "o1"

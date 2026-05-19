@@ -9,16 +9,14 @@ class SQLiteEmployeeRepo(AbstractSQliteRepo, EmployeeRepo):
         super().__init__(connection)
 
     def _init_db(self) -> None:
-        self._conn.execute(
-            """
+        self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS employees (
                     id TEXT PRIMARY KEY,
                     name TEXT,
                     state TEXT,
                     rest_start DATETIME
                 )
-            """
-        )
+            """)
 
     def _convert_to_entity(self, row: sqlite3.Row) -> Employee:
         return Employee(
@@ -86,8 +84,7 @@ class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
         super().__init__(connection)
 
     def _init_db(self) -> None:
-        self._conn.execute(
-            """
+        self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS clients (
                     id TEXT PRIMARY KEY,
                     name TEXT,
@@ -95,8 +92,7 @@ class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
                     orders_amount INTEGER,
                     registered_at DATETIME
                 )
-                """
-        )
+                """)
         self._conn.commit()
 
     def _convert_to_entity(self, row: sqlite3.Row) -> Client:
@@ -118,10 +114,8 @@ class SQLiteClientRepo(AbstractSQliteRepo, ClientRepo):
 
         return self._convert_to_entity(row)
 
-    def get_by_name(self, name: str) -> list[Client] | None:
-        rows = self._conn.execute(
-            "SELECT * from clients WHERE name = ?", (name,)
-        ).fetchall()
+    def get_all(self) -> list[Client] | None:
+        rows = self._conn.execute("SELECT * from clients").fetchall()
 
         if not rows:
             return None

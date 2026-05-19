@@ -1,5 +1,6 @@
 import random
 
+from cafe_manager.common.exceptions import IDGeneratingError
 from cafe_manager.domain.repository import OuterIDRepo
 from cafe_manager.domain.services.interfaces import IDGenerator
 
@@ -18,18 +19,20 @@ class RandomIDGenerator(IDGenerator):
     def _generate_code(self, length) -> str:
         characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         return "".join(random.choices(characters, k=length))
-    
+
     def _is_unique(self, generated_id: str, repo: OuterIDRepo) -> bool:
         entity = repo.get_by_id(generated_id)
 
         return entity is None
 
-    def generate_unique_code(self, obj_class: type, repo: OuterIDRepo, length: int = 6) -> str | None:
+    def generate_unique_code(
+        self, obj_class: type, repo: OuterIDRepo, length: int = 6
+    ) -> str | None:
         for _ in range(self.max_attempts):
-            generated_id = self._get_prefix(obj_class) + "-" + self._generate_code(length)
+            generated_id = (
+                self._get_prefix(obj_class) + "-" + self._generate_code(length)
+            )
             if self._is_unique(generated_id, repo):
                 return generated_id
-            
-        raise RuntimeError("Unique code was not generated. Try to use longer code")
-        
 
+        raise IDGeneratingError("Unique code was not generated. Try to use longer code")

@@ -39,8 +39,8 @@ class ClientListHandler:
     def __init__(self, uow: UnitOfWork) -> None:
         self._uow = uow
 
-    def handle(self, name: str) -> list[Client]:
+    def handle(self) -> list[Client]:
         with self._uow as uow:
-            clients = uow.client_repo.get_by_name(name)
+            clients = uow.client_repo.get_all()
 
             return clients or []

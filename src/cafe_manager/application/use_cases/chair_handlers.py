@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from cafe_manager.domain.entities.equipment import Chair
+from cafe_manager.domain.entities.equipment import Chair, ChairState
 from cafe_manager.domain.entities.finance import Money
 
 from cafe_manager.application.uow import UnitOfWork
@@ -8,6 +8,7 @@ from cafe_manager.application.uow import UnitOfWork
 from cafe_manager.common.exceptions import (
     AccountNotFoundError,
     ChairNotFoundError,
+    ChairStateError,
     InsufficientBudgetError,
     TableNotFoundError,
 )
@@ -48,6 +49,8 @@ class ChairDiscardHandler:
             chair = uow.chair_repo.get_by_id(chair_id)
             if chair is None:
                 raise ChairNotFoundError(f"Chair with id {chair_id} was not found")
+            if chair._state == ChairState.OCCUPIED:
+                raise ChairStateError("Impossible to discard occupied chair")
 
             table_id = chair._table_id
             table = uow.table_repo.get_by_id(table_id) if table_id else None
