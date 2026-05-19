@@ -1,0 +1,11 @@
+from .chair_routers import router as chair_router
+from .employee_routers import router as employee_router
+from .inventory_routers import router as inventory_router
+from .kitchen_routers import router as kitchen_router
+from .machine_routers import router as machine_router
+from .menu_routers import router as menu_router
+from .order_routers import router as order_router
+from .table_routers import router as table_router
+from .cafe_routers import router as cafe_router
+from .finance_routers import router as finance_router
+from .client_routers import router as client_router
