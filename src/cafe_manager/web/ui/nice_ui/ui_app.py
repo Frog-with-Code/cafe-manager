@@ -18,7 +18,7 @@ from .tabs import (
 )
 
 
-@ui.page("/ui")
+@ui.page("/")
 def main_page() -> None:
     ui.page_title("Cafma")
 
@@ -64,17 +64,8 @@ def main_page() -> None:
 
     async def on_tab_change(e: Any) -> None:
         tab_name: str = e.args if isinstance(e.args, str) else str(e.args)
-        print(f"Tab changed to: {tab_name!r}")
         refresh = refreshers.get(tab_name)
         if refresh:
             await refresh()
 
     tabs.on("update:modelValue", on_tab_change)
-
-
-def run_ui() -> None:
-    ui.run(title="Cafma", port=8080, reload=False)
-
-
-if __name__ == "__main__":
-    run_ui()

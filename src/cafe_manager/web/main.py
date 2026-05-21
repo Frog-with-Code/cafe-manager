@@ -1,7 +1,4 @@
 from fastapi import FastAPI
-from nicegui import ui
-
-from .ui.nice_ui import ui_app
 
 from .exception_handler import add_exception_handlers
 from .routers import *
@@ -25,15 +22,8 @@ app.include_router(client_router, prefix="/client")
 add_exception_handlers(app)
 
 
-@app.get("/")
-def read_root():
-    return {"status": "ok", "interface": "web", "docs": "/docs"}
-
-
 def run_web():
-
-    ui.run_with(app, favicon="☕")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 
 
 if __name__ == "__main__":

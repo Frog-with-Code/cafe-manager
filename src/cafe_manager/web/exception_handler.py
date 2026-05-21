@@ -1,42 +1,41 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from cafe_manager.common import exceptions as domain_exc
+from cafe_manager.common import exceptions
 
-from cafe_manager.common import exceptions as domain_exc
 
 EXCEPTION_MAP = {
-    domain_exc.AccountNotFoundError: 404,
-    domain_exc.CafeEnvNotFoundError: 404,
-    domain_exc.ChairNotFoundError: 404,
-    domain_exc.ClientNotFoundError: 404,
-    domain_exc.CoffeeMachineNotFoundError: 404,
-    domain_exc.EmployeeNotFoundError: 404,
-    domain_exc.IngredientNotFoundError: 404,
-    domain_exc.MenuItemNotFoundError: 404,
-    domain_exc.OrderNotFoundError: 404,
-    domain_exc.TableNotFoundError: 404,
+    exceptions.AccountNotFoundError: 404,
+    exceptions.CafeEnvNotFoundError: 404,
+    exceptions.ChairNotFoundError: 404,
+    exceptions.ClientNotFoundError: 404,
+    exceptions.CoffeeMachineNotFoundError: 404,
+    exceptions.EmployeeNotFoundError: 404,
+    exceptions.IngredientNotFoundError: 404,
+    exceptions.MenuItemNotFoundError: 404,
+    exceptions.OrderNotFoundError: 404,
+    exceptions.TableNotFoundError: 404,
     
-    domain_exc.TableSuitableNotFoundError: 400,
-    domain_exc.CafeEnvAlreadyInitError: 409,
-    domain_exc.CafeEnvExistsError: 409,
-    domain_exc.IngredientExistsError: 409,
-    domain_exc.MenuItemExistsError: 409,
+    exceptions.TableSuitableNotFoundError: 400,
+    exceptions.CafeEnvAlreadyInitError: 409,
+    exceptions.CafeEnvExistsError: 409,
+    exceptions.IngredientExistsError: 409,
+    exceptions.MenuItemExistsError: 409,
 
-    domain_exc.CafeEnvNameError: 400,
-    domain_exc.CafeEnvNoActiveError: 400,
-    domain_exc.ChairShortageError: 400,
-    domain_exc.ChairStateError: 400,
-    domain_exc.CoffeeMachineStateError: 400,
-    domain_exc.InsufficientBudgetError: 400,
-    domain_exc.InsufficientStocksError: 400,
-    domain_exc.KitchenOverloadError: 400,
-    domain_exc.MenuItemRepeatError: 400,
-    domain_exc.OrderStateError: 400,
-    domain_exc.TableBusyError: 400,
-    domain_exc.TablePlacesError: 400,
-    domain_exc.TableStateError: 400,
+    exceptions.CafeEnvNameError: 400,
+    exceptions.CafeEnvNoActiveError: 400,
+    exceptions.ChairShortageError: 400,
+    exceptions.ChairStateError: 400,
+    exceptions.CoffeeMachineStateError: 400,
+    exceptions.InsufficientBudgetError: 400,
+    exceptions.InsufficientStocksError: 400,
+    exceptions.KitchenOverloadError: 400,
+    exceptions.MenuItemRepeatError: 400,
+    exceptions.OrderStateError: 400,
+    exceptions.TableBusyError: 400,
+    exceptions.TablePlacesError: 400,
+    exceptions.TableStateError: 400,
 
-    domain_exc.IDGeneratingError: 500, 
+    exceptions.IDGeneratingError: 500, 
 }
 
 
