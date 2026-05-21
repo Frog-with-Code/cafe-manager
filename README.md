@@ -1,10 +1,10 @@
-# Cafe Manager CLI (Cafma)
+# Cafe Manager (Cafma)
 
-A robust Command Line Interface (CLI) application for comprehensive cafe management built with Python
+A robust CLI and Web application for comprehensive cafe management built with Python
 
 ## Features
 
-The application is divided into logical domains, each manageable via CLI subcommands:
+The application is divided into logical domains:
 
 *   **Environment (`cafe`)**: Support for multiple separate cafe databases (multi-tenancy).
 *   **Finance (`finance`)**: Track budget, investments, transactions, and profit/loss statistics.
@@ -17,8 +17,10 @@ The application is divided into logical domains, each manageable via CLI subcomm
 
 *   **Language:** Python 3.11+
 *   **CLI Framework:** [Typer](https://typer.tiangolo.com/)
-*   **UI/Formatting:** [Rich](https://rich.readthedocs.io/) (for beautiful terminal tables and colored output)
-*   **Database:** SQLite (built-in, with advanced custom Type Adapters for UUIDs, Datasets, and Value Objects)
+*   **Web Framework** [FastAPI](https://fastapi.tiangolo.com/) 
+*   **Web UI** [NiceGUI](https://nicegui.io/)
+*   **Database:** [SQLite](https://sqlite.org/)
+*   **Server:** [Uvicorn](https://uvicorn.dev/)
 
 ## Installation
 
@@ -41,7 +43,23 @@ The application is divided into logical domains, each manageable via CLI subcomm
 
 ## Quick Start
 
-To start using the Cafe Manager, you need to create a database environment and initialize your cafe.
+### Web
+
+To start using Cafma Web Application, you need start backend and frontend modules:
+
+**1. Open terminal and paste following command:**
+```bash
+cafma-web
+```
+
+**2. Open another terminal and paste following command:**
+```bash
+cafma-ui
+```
+
+### CLI
+
+To start using Cafma, you need to create a database environment and initialize your cafe.
 
 **1. Create and activate a new cafe environment:**
 ```bash
@@ -62,7 +80,7 @@ cafma order --help
 cafma order create --help
 ```
 
-### Basic Usage Example:
+### Basic CLI Usage Example:
 ```bash
 # Buy a table and chairs
 cafma table buy --seats 4 --price 150
@@ -78,28 +96,37 @@ cafma finance stats
 ## Project Structure
 
 The project strictly separates concerns:
-*   `domain/`: Contains enterprise logic, Entities and Domain Services. Does not depend on any other layer.
-*   `application/`: Contains Use Cases (Handlers) and Interfaces (Ports) for Repositories and Unit of Work.
-*   `infrastructure/`: Contains SQLite implementations of Repositories, handling direct DB connections and SQL queries.
-*   `cli/`: The presentation layer. Contains Typer setups, data validation, and console rendering using Rich.
+*   `domain/`: Contains enterprise logic, entities, domain services, interfaces of services and repositories. Does not depend on any other layer.
+*   `application/`: Contains Use Cases (handlers) and interface for Unit of Work.
+*   `infrastructure/`: Contains infrastructure services implementation, dependency injection factory and SQLite implementations of Repositories, handling direct DB connections and SQL queries.
+*   `cli/`: CLI presentation layer. Contains Typer setups, data validation, and console rendering using Rich.
+*   `web/`: Web presentation layer. Contains FastAPI setups, data validation and NiceGUI interface.
 
+Here is a draft for your `README.md` written in a professional, technical, and objective tone.
 
-## Class diagram
-![domain](uml/classes/domain/domain.png)
-![repositories](uml/classes/repositories/repositories.png)
-![uow](uml/classes/repositories/repositories.png)
+---
 
-![cafe_uc](uml/classes/use_cases/png/cafe.png)
-![chair_uc](uml/classes/use_cases/png/chair.png)
-![client_uc](uml/classes/use_cases/png/client.png)
-![employee_uc](uml/classes/use_cases/png/employee.png)
-![finance_uc](uml/classes/use_cases/png/finance.png)
-![inventory_uc](uml/classes/use_cases/png/inventory.png)
-![kitchen_uc](uml/classes/use_cases/png/kitchen.png)
-![machine_uc](uml/classes/use_cases/png/machine.png)
-![menu_uc](uml/classes/use_cases/png/menu.png)
-![order_uc](uml/classes/use_cases/png/order.png)
-![table_uc](uml/classes/use_cases/png/table.png)
+## Web Architecture
+
+### Component Overview
+
+1. **Backend**
+   * **Framework:** FastAPI
+   * **ASGI Server:** Uvicorn
+   * **Host:** `127.0.0.1` (localhost)
+   * **Port:** `8000`
+   * **Role:** Manages core business logic, data processing, and exposes REST endpoints.
+
+2. **Frontend**
+   * **Library:** NiceGUI
+   * **Host:** `127.0.0.1` (localhost)
+   * **Port:** `8080`
+   * **Role:** Renders the user interface and captures user inputs.
+
+### Communication Flow
+
+The frontend and backend run as independent processes. The NiceGUI frontend interacts with the FastAPI backend by sending HTTP requests over TCP connections to `http://127.0.0.1:8000`.
+
 
 ## Statechart diagram
 ![chair](uml/statechart/png/chair.png)
