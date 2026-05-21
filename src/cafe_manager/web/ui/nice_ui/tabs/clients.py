@@ -54,6 +54,7 @@ def tab_clients() -> None:
                     "/client/", params={"name": new_client_name.value}
                 )
                 notify_result(data, err)
+                await refresh_clients()
 
             ui.button("Register", on_click=create_client)
 
