@@ -126,11 +126,3 @@ Here is a draft for your `README.md` written in a professional, technical, and o
 ### Communication Flow
 
 The frontend and backend run as independent processes. The NiceGUI frontend interacts with the FastAPI backend by sending HTTP requests over TCP connections to `http://127.0.0.1:8000`.
-
-
-## Statechart diagram
-![chair](uml/statechart/png/chair.png)
-![employee](uml/statechart/png/employee.png)
-![machine](uml/statechart/png/machine.png)
-![order](uml/statechart/png/order.png)
-![table](uml/statechart/png/table.png)
