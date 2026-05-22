@@ -96,7 +96,15 @@ class DefaultSeatingService(SeatingService):
                 f"No available table for {people_amount} people"
             )
 
-        best_table = max(suitable_candidates, key=lambda t: t.chairs_amount)
+        max_tied_chairs = max(
+            suitable_candidates, key=lambda t: t.chairs_amount
+        ).chairs_amount
+        tables_with_max_tied_chairs = [
+            table
+            for table in suitable_candidates
+            if table.chairs_amount == max_tied_chairs
+        ]
+        best_table = min(tables_with_max_tied_chairs, key=lambda t: t.max_places)
 
         total_capacity = len(free_chairs) + best_table.chairs_amount
         if people_amount > total_capacity:
