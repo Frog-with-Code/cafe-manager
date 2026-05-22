@@ -6,6 +6,7 @@ from ..ui_helpers import (
     PAGE_SIZE,
     area,
     expansion,
+    inp,
     notify_result,
     num,
     required_inp,
@@ -71,21 +72,25 @@ def tab_orders() -> None:
 
             ui.button("Create", on_click=create_order)
 
-        with expansion("Pay order"):
-            pay_order_id = required_inp("Order ID")
-            pay_amount = num("Amount", value=0.0, min=0)
+    with expansion("Pay order"):
+        pay_order_id = required_inp("Order ID")
+        pay_amount = num("Amount", value=0.0, min=0)
+        pay_client_id = inp("Client ID (optional)")
 
-            async def pay_order() -> None:
-                if not validate_fields(pay_order_id):
-                    return
-                data, err = await api_post(
-                    f"/order/{pay_order_id.value}/pay",
-                    params={"amount_provided": pay_amount.value or 0.0},
-                )
-                notify_result(data, err)
-                await refresh_orders()
+        async def pay_order() -> None:
+            if not validate_fields(pay_order_id):
+                return
+            params: dict[str, Any] = {"amount_provided": pay_amount.value or 0.0}
+            if pay_client_id.value:
+                params["client_id"] = pay_client_id.value
+            data, err = await api_post(
+                f"/order/{pay_order_id.value}/pay",
+                params=params,
+            )
+            notify_result(data, err)
+            await refresh_orders()
 
-            ui.button("Pay", on_click=pay_order)
+        ui.button("Pay", on_click=pay_order)
 
         with expansion("View order items"):
             order_items_id = required_inp("Order ID")

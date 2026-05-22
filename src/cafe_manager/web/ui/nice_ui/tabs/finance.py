@@ -24,7 +24,6 @@ def tab_finance() -> None:
                 "income": ui.label("Income: —"),
                 "expense": ui.label("Expense: —"),
                 "profit_abs": ui.label("Profit: —"),
-                "is_loss": ui.label("Loss: —"),
             }
 
         async def refresh_stats() -> None:
@@ -35,12 +34,11 @@ def tab_finance() -> None:
                 stats_labels["balance"].set_text(f"Balance: {data.get('balance', '—')}")
                 stats_labels["income"].set_text(f"Income: {data.get('income', '—')}")
                 stats_labels["expense"].set_text(f"Expense: {data.get('expense', '—')}")
+                loss_sign = "—" if data.get("is_loss") else ""
                 stats_labels["profit_abs"].set_text(
-                    f"Profit: {data.get('profit_abs', '—')}"
+                    f"Profit: {loss_sign}{data.get('profit_abs', '—')}"
                 )
-                stats_labels["is_loss"].set_text(
-                    f"Loss: {'Yes' if data.get('is_loss') else 'No'}"
-                )
+
 
         refreshers["Finance"] = refresh_stats
 
