@@ -104,7 +104,6 @@ The project strictly separates concerns:
 
 Here is a draft for your `README.md` written in a professional, technical, and objective tone.
 
----
 
 ## Web Architecture
 
